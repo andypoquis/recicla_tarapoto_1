@@ -1,5 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:get/get.dart';
+
+// Alias para tu propio AuthProvider
+import '../data/provider/authprovider.dart' as custom_auth;
 
 class LoginController extends GetxController {
   // Define las propiedades reactivas para email y password
@@ -7,8 +10,8 @@ class LoginController extends GetxController {
   var password = ''.obs;
   var isLoading = false.obs; // Para manejar el estado de carga
 
-  // Instancia de FirebaseAuth
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  // Instancia de tu AuthProvider (el que guardas en Firestore/GetStorage)
+  final custom_auth.AuthProvider _authProvider = custom_auth.AuthProvider();
 
   // Método para manejar la lógica de inicio de sesión
   Future<void> login() async {
@@ -17,23 +20,23 @@ class LoginController extends GetxController {
         // Inicia el estado de carga
         isLoading.value = true;
 
-        // Lógica de autenticación con Firebase Auth
-        UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-          email: email.value,
-          password: password.value,
-        );
+        // Llama a signInWithEmail del AuthProvider de tu proyecto
+        firebase_auth.User? user =
+            await _authProvider.signInWithEmail(email.value, password.value);
 
-        // Usuario autenticado correctamente
-        User? user = userCredential.user;
+        // Verificamos si el user no es null => Login exitoso
         if (user != null) {
           // El usuario ha iniciado sesión correctamente
           Get.snackbar('Login exitoso', 'Bienvenido de nuevo');
-          // Aquí puedes redirigir a la pantalla de inicio o dashboard
-          Get.toNamed('/home');
+          // Aquí puedes redirigir a la pantalla de inicio (Home)
+          Get.offNamed('/home');
+        } else {
+          // Si user es null, mostramos error
+          Get.snackbar('Error', 'Credenciales incorrectas. Intenta de nuevo.');
         }
       } catch (e) {
         // Manejo de errores durante el login
-        Get.snackbar('Error', 'Credenciales incorrectas. Intenta de nuevo.');
+        Get.snackbar('Error', 'Ocurrió un error: $e');
         print("Error de inicio de sesión: $e");
       } finally {
         // Detiene el estado de carga

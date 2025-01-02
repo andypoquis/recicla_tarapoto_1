@@ -1,3 +1,4 @@
+// lib/modules/home/views/splash_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -21,18 +22,23 @@ class SplashPage extends GetView<SplashController> {
           ),
         ),
         child: Center(
-          child: Obx(() => AnimatedOpacity(
-                opacity: controller.opacity.value,
-                duration: Duration(seconds: 1),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('lib/assets/logo_completo.png',
-                        width: 247, height: 250),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              )),
+          child: Obx(
+            () => AnimatedOpacity(
+              opacity: controller.opacity.value,
+              duration: const Duration(seconds: 1),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'lib/assets/logo_completo.png',
+                    width: 247,
+                    height: 250,
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
