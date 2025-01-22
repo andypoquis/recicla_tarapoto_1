@@ -1,4 +1,3 @@
-// lib/modules/home/views/user_screen.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recicla_tarapoto_1/app/controllers/user_controller.dart';
@@ -6,22 +5,28 @@ import 'package:recicla_tarapoto_1/app/controllers/user_controller.dart';
 class UserScreen extends GetView<UserController> {
   const UserScreen({Key? key}) : super(key: key);
 
-  Widget _buildStatCard(String title, String value, Color color, double width) {
+  Widget _buildStatCard(String title, String value, double width) {
     return Container(
       width: width,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(19),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(8),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF59D999), Color(0xFF31ADA0)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             title,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
-              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
@@ -29,7 +34,7 @@ class UserScreen extends GetView<UserController> {
             value,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -41,21 +46,13 @@ class UserScreen extends GetView<UserController> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    final avatarRadius = screenWidth * 0.18;
-    final iconSize = avatarRadius * 1.5;
-    final statCardWidth = screenWidth * 0.4;
-    final fontSizeTitle = screenWidth * 0.05;
-    final fontSizeSubtitle = screenWidth * 0.035;
+    final avatarRadius = screenWidth * 0.16;
 
     return Scaffold(
       body: SingleChildScrollView(
         child: Obx(() {
-          // Escuchamos los cambios en userModel
           final userData = controller.userModel.value;
 
-          // Si userData es null, mostramos un mensaje
           if (userData == null) {
             return const Center(
               child: Padding(
@@ -68,9 +65,8 @@ class UserScreen extends GetView<UserController> {
             );
           }
 
-          // Si hay userData, mostramos la UI con sus datos
           return Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -79,117 +75,81 @@ class UserScreen extends GetView<UserController> {
                   children: [
                     CircleAvatar(
                       radius: avatarRadius,
-                      backgroundColor: const Color.fromARGB(255, 49, 173, 160),
-                      child: Icon(
+                      backgroundColor: const Color(0xFF31ADA0),
+                      child: const Icon(
                         Icons.person,
-                        size: iconSize,
+                        size: 100,
                         color: Colors.white,
                       ),
                     ),
-                    SizedBox(width: screenWidth * 0.04),
-
-                    // OJO: Aquí usamos Expanded en lugar de solo Column
+                    const SizedBox(width: 30),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '${userData.name} ${userData.lastname}',
-                            style: TextStyle(
-                              fontSize: fontSizeSubtitle,
+                            style: const TextStyle(
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Text(
-                            'DNI: ${userData.dni}',
-                            style: TextStyle(fontSize: fontSizeSubtitle),
-                          ),
-                          Text(
-                            'Telf: ${userData.phoneNumber}',
-                            style: TextStyle(fontSize: fontSizeSubtitle),
-                          ),
-                          Text(
-                            'Calle: ${userData.address}',
-                            style: TextStyle(fontSize: fontSizeSubtitle),
-                          ),
-                          Text(
-                            'Tipo: ${userData.typeUser.join(", ")}',
-                            style: TextStyle(fontSize: fontSizeSubtitle),
-                          ),
+                          Text('DNI: ${userData.dni}'),
+                          Text('Telf: ${userData.phoneNumber}'),
+                          Text('Calle: ${userData.address}'),
+                          Text('Tipo: ${userData.typeUser.join(", ")}'),
                         ],
                       ),
                     ),
                   ],
                 ),
-
-                SizedBox(height: screenHeight * 0.03),
+                const SizedBox(height: 24),
 
                 // Sección de estadísticas
-                Text(
+                const Text(
                   'Mis Aportes:',
                   style: TextStyle(
-                    fontSize: fontSizeTitle,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: screenHeight * 0.02),
-
-                Container(
-                  margin: const EdgeInsets.all(10.0),
-                  width: double.infinity,
-                  height: 90.0,
-                  child: _buildStatCard(
-                    'Total de Residuos Reciclados',
-                    '1000Kg',
-                    Colors.green.shade300,
-                    double.infinity,
-                  ),
+                const SizedBox(height: 16),
+                _buildStatCard(
+                  'Total de Residuos Reciclados',
+                  '1000Kg',
+                  double.infinity,
                 ),
-
+                const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildStatCard(
                       'Más reciclado',
                       'Plástico',
-                      Colors.green.shade300,
-                      statCardWidth,
+                      screenWidth * 0.43,
                     ),
                     _buildStatCard(
                       'Recolecciones',
                       '85',
-                      Colors.green.shade300,
-                      statCardWidth,
+                      screenWidth * 0.43,
                     ),
                   ],
                 ),
-                SizedBox(height: screenHeight * 0.03),
+                const SizedBox(height: 24),
 
                 // Sección de info del recolector
-                Text(
-                  'Mi Recolector',
+                const Text(
+                  'Mi Recolector:',
                   style: TextStyle(
-                    fontSize: fontSizeTitle,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: screenHeight * 0.01),
-                Text(
-                  'Nombre Completo: Wilder Arévalo',
-                  style: TextStyle(fontSize: fontSizeSubtitle),
-                ),
-                Text(
-                  'Asociación: Nuevo Amanecer',
-                  style: TextStyle(fontSize: fontSizeSubtitle),
-                ),
-                Text(
-                  'Teléfono: 971248365',
-                  style: TextStyle(fontSize: fontSizeSubtitle),
-                ),
-                Text(
-                  'Horario: Miércoles de 7am a 3.30pm',
-                  style: TextStyle(fontSize: fontSizeSubtitle),
-                ),
+                const SizedBox(height: 8),
+                Text('Nombre Completo: Wilder Arévalo'),
+                Text('Asociación: Nuevo Amanecer'),
+                Text('Teléfono: 971248365'),
+                Text('Horario: Miércoles de 7am a 3.30pm'),
               ],
             ),
           );

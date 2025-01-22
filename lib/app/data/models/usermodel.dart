@@ -4,6 +4,7 @@ class UserModel {
   String lastname;
   String name;
   String phoneNumber;
+  bool iscollector;
   List<String> typeUser;
   String uid;
 
@@ -13,6 +14,7 @@ class UserModel {
     required this.lastname,
     required this.name,
     required this.phoneNumber,
+    required this.iscollector,
     required this.typeUser,
     required this.uid,
   });
@@ -25,6 +27,7 @@ class UserModel {
       lastname: json['lastname'] ?? '',
       name: json['name'] ?? '',
       phoneNumber: json['phone_number'] ?? '',
+      iscollector: json['iscollector'] ?? false,
       typeUser: List<String>.from(json['type_user'] ?? []),
       uid: json['uid'] ?? '',
     );
@@ -38,6 +41,7 @@ class UserModel {
       'lastname': lastname,
       'name': name,
       'phone_number': phoneNumber,
+      'iscollector': iscollector,
       'type_user': typeUser,
       'uid': uid,
     };

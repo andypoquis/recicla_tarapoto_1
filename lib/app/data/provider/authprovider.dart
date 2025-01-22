@@ -37,7 +37,10 @@ class AuthProvider {
           // Guardamos en GetStorage:
           //   1) loggedIn = true
           //   2) userData en formato Map, para luego recuperarlo
+          print('El usuario es recolector: ${userModel.iscollector}');
           _box.write('loggedIn', true);
+          _box.write('iscollector', userModel.iscollector);
+
           _box.write('userData', userModel.toFirestore());
 
           print('Usuario encontrado y almacenado localmente.');
