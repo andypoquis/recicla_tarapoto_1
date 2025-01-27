@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "353639796918",
+    "project_id": "reciclatarapoto-206f4",
+    "storage_bucket": "reciclatarapoto-206f4.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:353639796918:android:7ce46c703b75b68bf4d617",
+        "android_client_info": {
+          "package_name": "com.example.recicla_tarapoto_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdJktIzXWN4wnJUHHVya9W3Gu2mAut3nc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
