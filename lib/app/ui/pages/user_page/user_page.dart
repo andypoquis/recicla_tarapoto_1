@@ -137,19 +137,35 @@ class UserScreen extends GetView<UserController> {
                 ),
                 const SizedBox(height: 24),
 
-                // Sección de info del recolector
-                const Text(
-                  'Mi Recolector:',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                // === Sección "Mi Recolector" SOLO si NO es recolector ===
+                if (userData.iscollector == false) ...[
+                  const Text(
+                    'Mi Recolector:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('Nombre Completo: Wilder Arévalo'),
+                  const Text('Asociación: Nuevo Amanecer'),
+                  const Text('Teléfono: 971248365'),
+                  const Text('Horario: Miércoles de 7am a 3.30pm'),
+                  const SizedBox(height: 24),
+                ],
+
+                // Botón de Cerrar Sesión
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      controller.logout();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF31ADA0),
+                    ),
+                    child: const Text('Cerrar Sesión'),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text('Nombre Completo: Wilder Arévalo'),
-                Text('Asociación: Nuevo Amanecer'),
-                Text('Teléfono: 971248365'),
-                Text('Horario: Miércoles de 7am a 3.30pm'),
               ],
             ),
           );
