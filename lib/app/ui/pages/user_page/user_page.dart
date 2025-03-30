@@ -263,86 +263,18 @@ class UserScreen extends GetView<UserController> {
                 const SizedBox(height: 16),
 
                 // Sección de info del recolector
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Mi Recolector',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            children: [
-                              Row(
-                                children: const [
-                                  Icon(Icons.person_outline,
-                                      color: Color(0xFF31ADA0)),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Nombre Completo: Wilder Arévalo',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.w500),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: const [
-                                  Icon(Icons.group_work,
-                                      color: Color(0xFF31ADA0)),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Asociación: Nuevo Amanecer',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.w500),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: const [
-                                  Icon(Icons.call, color: Color(0xFF31ADA0)),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Teléfono: 971248365',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.w500),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: const [
-                                  Icon(Icons.schedule,
-                                      color: Color(0xFF31ADA0)),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Horario: Miércoles de 7am a 3.30pm',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.w500),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                const Text(
+                  'Mi Recolector:',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
+                Text('Nombre Completo: Wilder Arévalo'),
+                Text('Asociación: Nuevo Amanecer'),
+                Text('Teléfono: 971248365'),
+                Text('Horario: Miércoles de 7am a 3.30pm'),
               ],
             ),
           );

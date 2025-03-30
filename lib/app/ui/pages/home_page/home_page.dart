@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recicla_tarapoto_1/app/controllers/home_controller.dart';
 import 'package:recicla_tarapoto_1/app/ui/pages/homecollector_page/homecollector_page.dart';
-import 'package:recicla_tarapoto_1/app/ui/pages/profilecollector_page/profilecollector_page.dart';
 import 'package:recicla_tarapoto_1/app/ui/pages/userinventory_page/userinventory_page.dart';
 
 // Páginas para el usuario "normal"
@@ -35,7 +34,8 @@ class HomePage extends GetView<HomeController> {
         HomecollectorPage(),
         UserinventoryPage(),
         NotificationsPage(),
-        ProfilecollectorPage(),
+        //ProfilecollectorPage(),
+        UserScreen(),
       ];
 
       // Definimos los items del BottomNavigationBar para usuario normal

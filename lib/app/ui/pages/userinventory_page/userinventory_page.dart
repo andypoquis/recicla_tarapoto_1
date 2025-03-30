@@ -2,66 +2,74 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../controllers/userinventory_controller.dart';
+import '../../../data/models/usermodel.dart';
 
 class UserinventoryPage extends GetView<UserinventoryController> {
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, String>> users = [
-      {
-        'name': 'Roy Franco Ruíz García',
-        'dni': '73188669',
-        'phone': '971245354',
-        'address': 'Jr. Alerta #247',
-        'type': 'Casa',
-      },
-      // Agrega más usuarios aquí si es necesario
-    ];
-
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Inventario de Usuarios',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+        child: StreamBuilder<List<UserModel>>(
+          stream: controller.usersStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Text('Ocurrió un error: ${snapshot.error}'),
+              );
+            }
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('No hay usuarios.'));
+            }
+
+            final users = snapshot.data!;
+
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Inventario de Usuarios',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: users.length,
+                      itemBuilder: (context, index) {
+                        final user = users[index];
+                        return _buildListItem(user, context);
+                      },
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 8),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: users.length,
-                  itemBuilder: (context, index) {
-                    final user = users[index];
-                    return _buildListItem(user, context);
-                  },
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildListItem(Map<String, String> user, BuildContext context) {
+  Widget _buildListItem(UserModel user, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: GestureDetector(
         onTap: () => _showUserDetailsDialog(context, user),
         child: Container(
-          padding: EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(12.0),
           decoration: BoxDecoration(
             color: const Color.fromRGBO(63, 188, 159, 1),
             borderRadius: BorderRadius.circular(8.0),
           ),
           child: Text(
-            user['address'] ?? '',
-            style: TextStyle(
+            user.address,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 16,
             ),
@@ -71,40 +79,47 @@ class UserinventoryPage extends GetView<UserinventoryController> {
     );
   }
 
-  void _showUserDetailsDialog(BuildContext context, Map<String, String> user) {
+  void _showUserDetailsDialog(BuildContext context, UserModel user) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 40,
-                backgroundColor: Colors.teal,
-                child: Icon(
-                  Icons.person,
-                  size: 40,
-                  color: Colors.white,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.teal,
+                  child: Icon(
+                    Icons.person,
+                    size: 40,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              SizedBox(height: 16),
-              Text(
-                user['name'] ?? '',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              _buildDetailRow('DNI:', user['dni'] ?? ''),
-              _buildDetailRow('Teléfono:', user['phone'] ?? ''),
-              _buildDetailRow('Calle:', user['address'] ?? ''),
-              _buildDetailRow('Tipo:', user['type'] ?? ''),
-            ],
+                const SizedBox(height: 16),
+                Text(
+                  '${user.name} ${user.lastname}',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                _buildDetailRow('DNI:', user.dni),
+                _buildDetailRow('Teléfono:', user.phoneNumber),
+                _buildDetailRow('Calle:', user.address),
+                _buildDetailRow(
+                  'Tipo(s):',
+                  user.typeUser.join(', '),
+                ),
+                // Si quieres mostrar `iscollector`, `uid`, etc., agrégalos aquí
+              ],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cerrar'),
+              child: const Text('Cerrar'),
             ),
           ],
         );
@@ -120,7 +135,7 @@ class UserinventoryPage extends GetView<UserinventoryController> {
         children: [
           Text(
             '$label ',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           Expanded(
             child: Text(value),
