@@ -48,128 +48,328 @@ class IncentivesScreen extends GetView<IncentivesController> {
 
                 // GridView.builder crea una cuadrícula dinámica basada en los incentivos.
                 return GridView.builder(
-                  itemCount:
-                      incentives.length, // Número de elementos en la lista.
+                  itemCount: incentives.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, // Número de columnas en la cuadrícula.
-                    crossAxisSpacing:
-                        10.0, // Espaciado horizontal entre columnas.
-                    mainAxisSpacing: 1.0, // Espaciado vertical entre filas.
-                    childAspectRatio:
-                        0.46, // Relación de aspecto de los elementos.
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.55,
                   ),
                   itemBuilder: (context, index) {
-                    final inc = incentives[index]; // Elemento actual.
+                    final inc = incentives[index];
                     return Card(
-                      color: const Color.fromRGBO(
-                          49, 173, 161, 1), // Color de fondo de la tarjeta.
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(12), // Bordes redondeados.
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      margin: const EdgeInsets.symmetric(
-                          vertical: 9.0), // Espaciado vertical entre tarjetas.
-                      child: Column(
-                        children: [
-                          // Imagen del incentivo cargada desde una URL.
-                          ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              topRight: Radius.circular(12),
-                            ),
-                            child: Image.network(
-                              inc.image, // URL de la imagen.
-                              height: 200, // Altura de la imagen.
-                              width: double
-                                  .infinity, // Ocupa todo el ancho disponible.
-                              fit: BoxFit
-                                  .cover, // Ajusta la imagen al tamaño del contenedor.
-                              errorBuilder: (context, error, stackTrace) {
-                                // Mostrar un ícono si la carga de la imagen falla.
-                                return const Icon(
-                                  Icons.broken_image,
-                                  size: 80,
-                                  color: Colors.white,
-                                );
-                              },
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                // Mostrar un indicador de carga mientras se descarga la imagen.
-                                if (loadingProgress == null) return child;
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              },
-                            ),
+                      elevation: 4,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF31ADA0), Color(0xFF59D999)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          Padding(
-                            // Contenido de la tarjeta (nombre, descripción y botón).
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        inc.name, // Nombre del incentivo.
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Imagen del incentivo
+                            ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                topRight: Radius.circular(16),
+                              ),
+                              child: Image.network(
+                                inc.image,
+                                height: 140,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    height: 140,
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.broken_image,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                },
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return SizedBox(
+                                    height: 140,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            // Contenido del incentivo
+                            Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Nombre y precio
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          inc.name,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        "${inc.price} \$",
                                         style: const TextStyle(
                                           fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color.fromARGB(
-                                              221, 255, 255, 255),
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
                                         ),
-                                        overflow: TextOverflow
-                                            .ellipsis, // Limita el texto a una línea.
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  // Descripción corta
+                                  Text(
+                                    inc.description,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Center(
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        // Al presionar CANJEAR, mostramos el diálogo
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext ctx) {
+                                            return Dialog(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                              ),
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(16.0),
+                                                child: SingleChildScrollView(
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      // Sección de monedas del usuario (por ahora estática)
+                                                      Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          const Icon(
+                                                            Icons
+                                                                .monetization_on,
+                                                            color: Color(
+                                                                0xFF31ADA0),
+                                                            size: 30,
+                                                          ),
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          // Texto con las monedas disponibles
+                                                          const Text(
+                                                            "150 Monedas",
+                                                            style: TextStyle(
+                                                              fontSize: 18,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 20),
+                                                      // Imagen del producto
+                                                      ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
+                                                        child: Image.network(
+                                                          inc.image,
+                                                          height: 140,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (context, error,
+                                                                  stackTrace) {
+                                                            return Container(
+                                                              height: 140,
+                                                              color: Colors
+                                                                  .grey[300],
+                                                              child: const Icon(
+                                                                Icons
+                                                                    .broken_image,
+                                                                size: 60,
+                                                                color:
+                                                                    Colors.grey,
+                                                              ),
+                                                            );
+                                                          },
+                                                          loadingBuilder: (context,
+                                                              child,
+                                                              loadingProgress) {
+                                                            if (loadingProgress ==
+                                                                null) {
+                                                              return child;
+                                                            }
+                                                            return const SizedBox(
+                                                              height: 140,
+                                                              child: Center(
+                                                                child:
+                                                                    CircularProgressIndicator(),
+                                                              ),
+                                                            );
+                                                          },
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 16),
+                                                      // Nombre y costo
+                                                      Text(
+                                                        inc.name,
+                                                        style: const TextStyle(
+                                                          fontSize: 18,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        "Costo: ${inc.price} monedas",
+                                                        style: const TextStyle(
+                                                          fontSize: 16,
+                                                          color: Colors.black87,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 10),
+                                                      // Descripción
+                                                      Text(
+                                                        inc.description,
+                                                        textAlign:
+                                                            TextAlign.justify,
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.black54,
+                                                        ),
+                                                      ),
+                                                      const Divider(height: 30),
+                                                      // Proceso a seguir
+                                                      const Text(
+                                                        "Proceso para recibir tu premio:",
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 6),
+                                                      const Text(
+                                                        "- Una vez confirmado el canje, se descontarán las monedas de tu cuenta.\n"
+                                                        "- El equipo de ReciclaTarapoto te contactará en un plazo de 48 horas.\n"
+                                                        "- Deberás acercarte a nuestras oficinas con tu DNI para recoger el premio.",
+                                                        textAlign:
+                                                            TextAlign.justify,
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.black87,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 20),
+                                                      // Botón de confirmación
+                                                      Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceEvenly,
+                                                        children: [
+                                                          OutlinedButton(
+                                                            onPressed: () {
+                                                              Navigator.of(ctx)
+                                                                  .pop();
+                                                            },
+                                                            child: const Text(
+                                                                "Cerrar"),
+                                                          ),
+                                                          ElevatedButton(
+                                                            onPressed: () {
+                                                              // Aquí tu lógica de confirmación
+                                                              Navigator.of(ctx)
+                                                                  .pop();
+                                                              Get.snackbar(
+                                                                "¡Felicidades!",
+                                                                "Has canjeado el incentivo correctamente.",
+                                                                snackPosition:
+                                                                    SnackPosition
+                                                                        .TOP,
+                                                                backgroundColor:
+                                                                    Colors
+                                                                        .white,
+                                                              );
+                                                            },
+                                                            style:
+                                                                ElevatedButton
+                                                                    .styleFrom(
+                                                              backgroundColor:
+                                                                  const Color(
+                                                                      0xFF31ADA0),
+                                                              foregroundColor:
+                                                                  Colors.white,
+                                                            ),
+                                                            child: const Text(
+                                                              "Confirmar Canje",
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor:
+                                            const Color(0xFF31ADA0),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        "CANJEAR",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                    Text(
-                                      "${inc.price} \$", // Precio del incentivo.
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(
-                                    height: 4), // Espaciado entre elementos.
-                                Text(
-                                  inc.description, // Descripción del incentivo.
-                                  maxLines:
-                                      3, // Número máximo de líneas para mostrar.
-                                  overflow: TextOverflow
-                                      .ellipsis, // Texto truncado con "..."
-                                  textAlign: TextAlign.justify,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white,
                                   ),
-                                ),
-                                const SizedBox(
-                                    height: 6), // Espaciado antes del botón.
-                                Center(
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      // Lógica al presionar el botón (canje del incentivo).
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color.fromRGBO(
-                                          89, 217, 153, 1), // Color del botón.
-                                      foregroundColor: Colors
-                                          .white, // Color del texto en el botón.
-                                    ),
-                                    child: const Text(
-                                        "CANJEAR"), // Texto del botón.
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   },
