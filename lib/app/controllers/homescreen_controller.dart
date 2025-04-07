@@ -2,9 +2,11 @@
 
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/data/models/waste_collection.dart';
 import '../data/models/carousel_image.dart';
 import '../data/provider/home_provider.dart';
 
@@ -53,6 +55,13 @@ class HomeScreenController extends GetxController {
         }
       }
     });
+  }
+
+  /// Crea una nueva solicitud de recolección en la colección "waste_collections"
+  Future<void> createWasteCollection(WasteCollectionModel wasteData) async {
+    await FirebaseFirestore.instance
+        .collection('wasteCollections')
+        .add(wasteData.toFirestore());
   }
 
   @override

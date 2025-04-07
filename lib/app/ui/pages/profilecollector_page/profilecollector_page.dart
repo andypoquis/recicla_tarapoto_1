@@ -121,20 +121,6 @@ class ProfilecollectorPage extends GetView<ProfilecollectorController> {
                 ],
               ),
               const SizedBox(height: 24),
-
-              // Sección de info del recolector
-              /*const Text(
-                'Mi Recolector:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text('Nombre Completo: Wilder Arévalo'),
-              const Text('Asociación: Nuevo Amanecer'),
-              const Text('Teléfono: 971248365'),
-              const Text('Horario: Miércoles de 7am a 3.30pm'),*/
             ],
           ),
         ),

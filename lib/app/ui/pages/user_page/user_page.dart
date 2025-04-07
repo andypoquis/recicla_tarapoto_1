@@ -62,10 +62,13 @@ class UserScreen extends GetView<UserController> {
             );
           }
 
+          // Si tenemos un usuario collector (para el usuario NO recolector)
+          final collectorData = controller.collectorModel.value;
+
           return SingleChildScrollView(
             child: Column(
               children: [
-                // Sección superior (header) con el avatar y datos básicos
+                // Sección superior (header) con el avatar, icono de logout y datos básicos
                 Container(
                   width: double.infinity,
                   decoration: const BoxDecoration(
@@ -79,6 +82,18 @@ class UserScreen extends GetView<UserController> {
                       const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                   child: Column(
                     children: [
+                      // Icono de logout alineado arriba a la derecha
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: IconButton(
+                          icon: const Icon(Icons.exit_to_app),
+                          color: Colors.white,
+                          tooltip: 'Cerrar sesión',
+                          onPressed: () {
+                            controller.logout();
+                          },
+                        ),
+                      ),
                       CircleAvatar(
                         radius: 48,
                         backgroundColor: Colors.white,
@@ -139,7 +154,7 @@ class UserScreen extends GetView<UserController> {
                               Icons.location_on,
                               color: Color(0xFF31ADA0),
                             ),
-                            title: Text('Dirección'),
+                            title: const Text('Dirección'),
                             subtitle: Text(userData.address),
                           ),
                           const Divider(),
@@ -148,7 +163,7 @@ class UserScreen extends GetView<UserController> {
                               Icons.person_pin_rounded,
                               color: Color(0xFF31ADA0),
                             ),
-                            title: Text('Tipo de Usuario'),
+                            title: const Text('Tipo de Usuario'),
                             subtitle: Text(userData.typeUser.join(", ")),
                           ),
                         ],
@@ -192,9 +207,9 @@ class UserScreen extends GetView<UserController> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  Text(
+                                  const Text(
                                     '1000 Kg',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF31ADA0),
@@ -210,17 +225,17 @@ class UserScreen extends GetView<UserController> {
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      children: [
-                                        const Text(
+                                      children: const [
+                                        Text(
                                           'Material + reciclado',
                                           style: TextStyle(
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
+                                        SizedBox(height: 4),
                                         Text(
                                           'Plástico',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                             color: Color(0xFF31ADA0),
@@ -231,17 +246,17 @@ class UserScreen extends GetView<UserController> {
                                   ),
                                   Expanded(
                                     child: Column(
-                                      children: [
-                                        const Text(
+                                      children: const [
+                                        Text(
                                           'Recolecciones',
                                           style: TextStyle(
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
+                                        SizedBox(height: 4),
                                         Text(
                                           '85',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                             color: Color(0xFF31ADA0),
@@ -262,19 +277,28 @@ class UserScreen extends GetView<UserController> {
 
                 const SizedBox(height: 16),
 
-                // Sección de info del recolector
-                const Text(
-                  'Mi Recolector:',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                // Sección de info del recolector (si el usuario actual NO es recolector)
+                if (!userData.iscollector) ...[
+                  const Text(
+                    'Mi Recolector:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text('Nombre Completo: Wilder Arévalo'),
-                Text('Asociación: Nuevo Amanecer'),
-                Text('Teléfono: 971248365'),
-                Text('Horario: Miércoles de 7am a 3.30pm'),
+                  const SizedBox(height: 8),
+                  // Si ya tenemos collectorData, lo mostramos:
+                  if (collectorData != null) ...[
+                    Text(
+                        'Nombre Completo: ${collectorData.name} ${collectorData.lastname}'),
+                    const Text('Asociación: Nuevo Amanecer'),
+                    Text('Teléfono: ${collectorData.phoneNumber}'),
+                    const Text('Horario: Miércoles de 7am a 3.30pm'),
+                  ] else ...[
+                    // Si collectorData == null (no se encontró recolector o falló consulta)
+                    const Text('No se encontró información del recolector'),
+                  ],
+                ],
               ],
             ),
           );

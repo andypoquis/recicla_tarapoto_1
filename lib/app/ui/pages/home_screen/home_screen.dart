@@ -1,6 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+// Asegúrate de importar tu HomeScreenController
 import 'package:recicla_tarapoto_1/app/controllers/homescreen_controller.dart';
+// Importa también tu UserController para acceder al userModel
+import 'package:recicla_tarapoto_1/app/controllers/user_controller.dart';
+import 'package:recicla_tarapoto_1/app/data/models/residue_item.dart';
+// Modelos
+import 'package:recicla_tarapoto_1/app/data/models/waste_collection.dart';
 
 class HomeScreen extends GetView<HomeScreenController> {
   const HomeScreen({Key? key}) : super(key: key);
@@ -91,12 +98,65 @@ class HomeScreen extends GetView<HomeScreenController> {
                     ),
                     ElevatedButton(
                       child: const Text("Confirmar"),
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.of(ctx).pop();
-                        // Aquí ya se confirma la operación:
+
+                        // (1) Obtenemos los datos del usuario (dirección, uid, etc.)
+                        final userController = Get.find<UserController>();
+                        final userData = userController.userModel.value;
+                        if (userData == null) {
+                          Get.snackbar(
+                            "Error",
+                            "No se encontró información de usuario.",
+                            backgroundColor: Colors.red,
+                            colorText: Colors.white,
+                          );
+                          return;
+                        }
+
+                        // (2) Mapeamos los residuos al modelo ResidueItem
+                        final List<ResidueItem> residueItems =
+                            resumenResiduos.map((res) {
+                          final double kg = res["kg"] as double;
+                          // asumiendo que 1 kg = 3 monedas:
+                          final double coins = kg * 3;
+
+                          return ResidueItem(
+                            approxKg: kg,
+                            coinsPerType: coins.toStringAsFixed(1),
+                            individualBag: res["bolsa"] as bool,
+                            selectedItems:
+                                (res["items"] as List).cast<String>(),
+                            type: res["tipo"] as String,
+                          );
+                        }).toList();
+
+                        // (3) Construimos nuestro WasteCollectionModel
+                        // isRecycled en este punto podría ser false
+                        // (asumiendo que aún no está reciclado, apenas se solicita)
+                        final wasteCollection = WasteCollectionModel(
+                          id: '', // se asignará automáticamente
+                          address: userData.address,
+                          isRecycled: false,
+                          totalBags: totalBolsas.toDouble(),
+                          totalCoins: totalMonedas,
+                          totalKg: totalKg,
+                          correctlySegregated: segregadosCorrectamente,
+                          residues: residueItems,
+                          // Referencia al usuario en Firestore (colección 'users')
+                          userReference: FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(userData.uid),
+                          date: DateTime.now(),
+                        );
+
+                        // (4) Llamamos al método en el controller para guardar en Firestore
+                        await controller.createWasteCollection(wasteCollection);
+
+                        // (5) Notificamos al usuario
                         Get.snackbar(
                           "Solicitud Enviada",
-                          "Tu solicitud ha sido confirmada.",
+                          "Tu solicitud ha sido confirmada y guardada.",
                           backgroundColor: const Color(0xFF59D999),
                           colorText: Colors.white,
                         );
@@ -400,7 +460,7 @@ class HomeScreen extends GetView<HomeScreenController> {
       for (var i = 0; i < residuos.length; i++) {
         if (isKgFieldEnabled[i]) {
           final kg = double.tryParse(kgControllers[i].text) ?? 0.0;
-          // 1 Kg => 3 monedas
+          // 1 Kg => 3 monedas (ejemplo)
           unitValues[i].value = kg * 3;
           totalKg.value += kg;
           totalMonedas.value += unitValues[i].value;
