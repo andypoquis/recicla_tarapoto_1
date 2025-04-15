@@ -15,7 +15,6 @@ class HomeBottomNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
       decoration: const BoxDecoration(
         color: Color(0xFF31ADA0),
       ),

@@ -1,39 +1,64 @@
-// lib/app/controllers/incentives_controller.dart
+// lib/app/controllers/all_redeemed_incentives_controller.dart
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 
-import '../data/models/incentive.dart';
-import '../data/provider/incentives_provider.dart';
+import '../data/models/redeemedIncentiveWithUser.dart';
+import '../data/models/redeemed_incentive_model.dart';
 
-class IncentivesController extends GetxController {
-  final IncentivesProvider _provider = IncentivesProvider();
+class AllRedeemedIncentivesController extends GetxController {
+  /// Stream con todos los canjes de la subcolección 'redeemedIncentives'
+  /// de todos los usuarios. Además, se consulta el doc del usuario padre
+  /// para extraer su `name` y `address`.
+  Stream<List<RedeemedIncentiveWithUser>> get allRedeemedIncentivesStream {
+    // Obtenemos un stream de todos los docs en la subcolección.
+    final queryStream = FirebaseFirestore.instance
+        .collectionGroup('redeemedIncentives')
+        .snapshots();
 
-  /// Lista observable de [Incentive] que se actualizará en tiempo real.
-  RxList<Incentive> incentivesList = <Incentive>[].obs;
+    // Convertimos cada snapshot en objetos RedeemedIncentiveWithUser
+    return queryStream.asyncMap((querySnapshot) async {
+      final List<RedeemedIncentiveWithUser> result = [];
 
-  @override
-  void onInit() {
-    super.onInit();
-    _initIncentivesListener();
-  }
+      // Recorremos cada documento de canje
+      for (final docSnap in querySnapshot.docs) {
+        final redeemedIncentive = RedeemedIncentiveModel.fromFirestore(docSnap);
 
-  /// Se suscribe a los cambios de la colección `incentives` en Firestore.
-  void _initIncentivesListener() {
-    _provider.getIncentives().listen((incentives) {
-      incentivesList.value = incentives;
+        // Obtenemos la referencia al doc del usuario => parent.parent
+        final userDocRef = docSnap.reference.parent.parent;
+        if (userDocRef == null) {
+          // Si por alguna razón no existe, lo ignoramos o asumimos valores vacíos
+          continue;
+        }
+
+        // Leemos el doc del usuario para obtener nombre, address, etc.
+        final userDocSnap = await userDocRef.get();
+        final userData = userDocSnap.data() as Map<String, dynamic>?;
+
+        final userName = userData?['name'] ?? '';
+        final userAddress = userData?['address'] ?? '';
+
+        // Combinamos
+        result.add(
+          RedeemedIncentiveWithUser(
+            incentive: redeemedIncentive,
+            userName: userName,
+            userAddress: userAddress,
+          ),
+        );
+      }
+
+      return result;
     });
   }
 
-  /// Puedes añadir métodos para agregar, actualizar o eliminar incentivos
-  /// utilizando los métodos del provider.
-  Future<void> addIncentive(Incentive incentive) async {
-    await _provider.addIncentive(incentive);
-  }
-
-  Future<void> updateIncentive(String id, Incentive incentive) async {
-    await _provider.updateIncentive(id, incentive);
-  }
-
-  Future<void> deleteIncentive(String id) async {
-    await _provider.deleteIncentive(id);
+  /// Cambia el estado de pendiente a completado
+  Future<void> markAsCompleted(RedeemedIncentiveModel incentive) async {
+    try {
+      await incentive.docRef.update({'status': 'completado'});
+    } catch (e) {
+      print('Error actualizando estado: $e');
+      rethrow;
+    }
   }
 }

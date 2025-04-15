@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recicla_tarapoto_1/app/controllers/home_controller.dart';
+import 'package:recicla_tarapoto_1/app/ui/pages/allredeemedincentives_page/allredeemedincentives_page.dart';
 
 // Importaciones de las páginas
 import '../home_screen/home_screen.dart';
@@ -37,6 +38,7 @@ class HomePage extends GetView<HomeController> {
         UserinventoryPage(),
         NotificationsPage(),
         UserScreen(),
+        AllRedeemedIncentivesPage(),
       ];
 
       // Items del BottomNavigationBar
@@ -70,6 +72,10 @@ class HomePage extends GetView<HomeController> {
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.notifications_active),
+          label: '',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_pin),
           label: '',
         ),
         BottomNavigationBarItem(
