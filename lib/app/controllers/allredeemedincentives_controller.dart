@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-
-import '../data/models/redeemed_incentive_model.dart';
+import 'package:recicla_tarapoto_1/app/data/models/redeemed_incentive_model.dart';
 
 class AllRedeemedIncentivesController extends GetxController {
   /// Stream con todos los canjes de la subcolección 'redeemedIncentives'
