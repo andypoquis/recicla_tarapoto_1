@@ -1,267 +1,372 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:recicla_tarapoto_1/app/controllers/incentives_controller.dart';
 
-class IncentivesScreen extends StatelessWidget {
+class IncentivesScreen extends GetView<IncentivesController> {
   const IncentivesScreen({Key? key}) : super(key: key);
-
-  // Colores primarios usados en tu app:
-  static const Color primaryColorDark = Color(0xFF31ADA0);
-  static const Color primaryColorLight = Color(0xFF59D999);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Estructura principal de la pantalla.
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding:
+            const EdgeInsets.all(8.0), // Espaciado alrededor de toda la vista.
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment
+              .start, // Alineación de los elementos en el eje horizontal.
           children: [
-            const SizedBox(height: 14),
+            const SizedBox(height: 14), // Espaciado superior.
             const Text(
-              "Incentivos Canjeados",
+              "Incentivos Disponibles", // Título principal de la pantalla.
               style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w500,
-                color: Color.fromARGB(255, 102, 102, 102),
+                fontSize: 24, // Tamaño de la fuente.
+                fontWeight: FontWeight.w500, // Grosor de la fuente.
+                color: Color.fromARGB(255, 102, 102, 102), // Color del texto.
               ),
             ),
-            const SizedBox(height: 8.0),
+            const SizedBox(
+                height: 8.0), // Espaciado entre el título y el contenido.
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                // 1) Traemos TODOS los documentos de la subcolección 'redeemedIncentives' de TODOS los usuarios
-                stream: FirebaseFirestore.instance
-                    .collectionGroup('redeemedIncentives')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text('Ocurrió un error: ${snapshot.error}'),
-                    );
-                  }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(
-                      child: Text('No hay incentivos canjeados.'),
-                    );
-                  }
-
-                  final docs = snapshot.data!.docs;
-
-                  // Usamos GridView para ejemplificar, puedes cambiar a ListView.builder si lo prefieres
-                  return GridView.builder(
-                    itemCount: docs.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.60,
+              // Widget para ocupar el espacio restante en la pantalla.
+              child: Obx(() {
+                // Obx permite reaccionar automáticamente a cambios en variables reactivas del controlador.
+                final incentives = controller.incentivesList;
+                if (incentives.isEmpty) {
+                  // Mostrar un mensaje si la lista de incentivos está vacía.
+                  return const Center(
+                    child: Text(
+                      'No hay incentivos disponibles.',
+                      style: TextStyle(fontSize: 16),
                     ),
-                    itemBuilder: (context, index) {
-                      final docSnap = docs[index];
-                      final data = docSnap.data() as Map<String, dynamic>?;
-
-                      // Si el doc no tiene data, retornamos algo vacío
-                      if (data == null) {
-                        return const SizedBox();
-                      }
-
-                      // Obtenemos la referencia al documento de usuario
-                      // parent => 'redeemedIncentives', parent.parent => '/users/<uid>'
-                      final userDocRef = docSnap.reference.parent.parent;
-                      if (userDocRef == null) {
-                        // Si no existe la referencia padre, no podemos mostrar datos del user
-                        return const SizedBox();
-                      }
-
-                      // 2) FutureBuilder para traer datos del usuario (name, lastname, address, etc.)
-                      return FutureBuilder<DocumentSnapshot>(
-                        future: userDocRef.get(),
-                        builder: (context, userSnapshot) {
-                          if (userSnapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          }
-                          if (userSnapshot.hasError) {
-                            return const Center(
-                                child: Text('Error al cargar usuario'));
-                          }
-
-                          // Datos del usuario
-                          String userFullName = '';
-                          String userAddress = '';
-
-                          if (userSnapshot.hasData &&
-                              userSnapshot.data!.exists) {
-                            final userData = userSnapshot.data!.data()
-                                as Map<String, dynamic>?;
-                            if (userData != null) {
-                              final userName = userData['name'] ?? '';
-                              final userLastName = userData['lastname'] ?? '';
-                              userFullName = '$userName $userLastName'.trim();
-                              userAddress = userData['address'] ?? '';
-                            }
-                          }
-
-                          // Datos del incentivo canjeado
-                          final incentiveName = data['name'] ?? '';
-                          final description = data['description'] ?? '';
-                          final price = data['price']?.toString() ?? '';
-                          final imageUrl = data['image'] ?? '';
-                          final status = data['status'] ?? 'pendiente';
-
-                          return Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 4,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                gradient: const LinearGradient(
-                                  colors: [primaryColorDark, primaryColorLight],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(10.0),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    // Imagen
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Image.network(
-                                        imageUrl,
-                                        height: 100,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return Container(
-                                            height: 100,
-                                            color: Colors.grey[300],
-                                            child: const Icon(
-                                              Icons.broken_image,
-                                              size: 60,
-                                              color: Colors.grey,
-                                            ),
-                                          );
-                                        },
-                                        loadingBuilder:
-                                            (context, child, loadingProgress) {
-                                          if (loadingProgress == null)
-                                            return child;
-                                          return SizedBox(
-                                            height: 100,
-                                            child: const Center(
-                                              child:
-                                                  CircularProgressIndicator(),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    // Nombre del incentivo
-                                    Text(
-                                      incentiveName,
-                                      style: const TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    // Descripción del incentivo
-                                    Text(
-                                      description,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.white70,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    // Precio
-                                    Text(
-                                      'Costo: $price monedas',
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    // Espacio
-                                    const SizedBox(height: 8),
-                                    // Estado
-                                    Row(
-                                      children: [
-                                        const Text(
-                                          'Estado: ',
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Text(
-                                          status,
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            color: (status == 'pendiente')
-                                                ? Colors.amberAccent
-                                                : Colors.greenAccent,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    // Divider
-                                    Container(
-                                      height: 1,
-                                      color: Colors.white54,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    // Información del usuario (nombre y dirección)
-                                    Text(
-                                      userFullName,
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      userAddress,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.white70,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
                   );
-                },
-              ),
+                }
+
+                // GridView.builder crea una cuadrícula dinámica basada en los incentivos.
+                return GridView.builder(
+                  itemCount: incentives.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.55,
+                  ),
+                  itemBuilder: (context, index) {
+                    final inc = incentives[index];
+                    return Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 4,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF31ADA0), Color(0xFF59D999)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Imagen del incentivo
+                            ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                topRight: Radius.circular(16),
+                              ),
+                              child: Image.network(
+                                inc.image,
+                                height: 140,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    height: 140,
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.broken_image,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                },
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return SizedBox(
+                                    height: 140,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            // Contenido del incentivo
+                            Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Nombre y precio
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          inc.name,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        "${inc.price} \$",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  // Descripción corta
+                                  Text(
+                                    inc.description,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Center(
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        // Al presionar CANJEAR, mostramos el diálogo
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext ctx) {
+                                            return Dialog(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                              ),
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(16.0),
+                                                child: SingleChildScrollView(
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      // Sección de monedas del usuario (por ahora estática o ejemplo)
+                                                      Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          const Icon(
+                                                            Icons
+                                                                .monetization_on,
+                                                            color: Color(
+                                                                0xFF31ADA0),
+                                                            size: 30,
+                                                          ),
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          // Texto con las monedas disponibles (harás tu lógica real para mostrarlo en la UI)
+                                                          const Text(
+                                                            "150 Monedas",
+                                                            style: TextStyle(
+                                                              fontSize: 18,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 20),
+                                                      // Imagen del producto
+                                                      ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
+                                                        child: Image.network(
+                                                          inc.image,
+                                                          height: 140,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (context, error,
+                                                                  stackTrace) {
+                                                            return Container(
+                                                              height: 140,
+                                                              color: Colors
+                                                                  .grey[300],
+                                                              child: const Icon(
+                                                                Icons
+                                                                    .broken_image,
+                                                                size: 60,
+                                                                color:
+                                                                    Colors.grey,
+                                                              ),
+                                                            );
+                                                          },
+                                                          loadingBuilder: (context,
+                                                              child,
+                                                              loadingProgress) {
+                                                            if (loadingProgress ==
+                                                                null) {
+                                                              return child;
+                                                            }
+                                                            return const SizedBox(
+                                                              height: 140,
+                                                              child: Center(
+                                                                child:
+                                                                    CircularProgressIndicator(),
+                                                              ),
+                                                            );
+                                                          },
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 16),
+                                                      // Nombre y costo
+                                                      Text(
+                                                        inc.name,
+                                                        style: const TextStyle(
+                                                          fontSize: 18,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        "Costo: ${inc.price} monedas",
+                                                        style: const TextStyle(
+                                                          fontSize: 16,
+                                                          color: Colors.black87,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 10),
+                                                      // Descripción
+                                                      Text(
+                                                        inc.description,
+                                                        textAlign:
+                                                            TextAlign.justify,
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.black54,
+                                                        ),
+                                                      ),
+                                                      const Divider(height: 30),
+                                                      // Proceso a seguir
+                                                      const Text(
+                                                        "Proceso para recibir tu premio:",
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 6),
+                                                      const Text(
+                                                        "- Una vez confirmado el canje, se descontarán las monedas de tu cuenta.\n"
+                                                        "- El equipo de ReciclaTarapoto te contactará en un plazo de 48 horas.\n"
+                                                        "- Deberás acercarte a nuestras oficinas con tu DNI para recoger el premio.",
+                                                        textAlign:
+                                                            TextAlign.justify,
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.black87,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 20),
+                                                      // Botón de confirmación
+                                                      Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceEvenly,
+                                                        children: [
+                                                          OutlinedButton(
+                                                            onPressed: () {
+                                                              Navigator.of(ctx)
+                                                                  .pop();
+                                                            },
+                                                            child: const Text(
+                                                                "Cerrar"),
+                                                          ),
+                                                          ElevatedButton(
+                                                            onPressed:
+                                                                () async {
+                                                              // Aquí tu lógica de confirmación:
+                                                              // Llamar al método del controller
+                                                              await controller
+                                                                  .redeemIncentive(
+                                                                      inc);
+
+                                                              // Cerrar el diálogo
+                                                              Navigator.of(ctx)
+                                                                  .pop();
+                                                            },
+                                                            style:
+                                                                ElevatedButton
+                                                                    .styleFrom(
+                                                              backgroundColor:
+                                                                  const Color(
+                                                                      0xFF31ADA0),
+                                                              foregroundColor:
+                                                                  Colors.white,
+                                                            ),
+                                                            child: const Text(
+                                                                "Confirmar Canje"),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor:
+                                            const Color(0xFF31ADA0),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        "CANJEAR",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }),
             ),
           ],
         ),
