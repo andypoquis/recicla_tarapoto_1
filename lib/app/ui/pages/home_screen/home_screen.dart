@@ -59,20 +59,30 @@ class HomeScreen extends GetView<HomeScreenController> {
                     final kg = res["kg"];
                     final bolsa = res["bolsa"] == true ? "Sí" : "No";
                     final items = (res["items"] as List).join(", ");
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F6F5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: const Color(0xFF59D999), width: 1),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             "• $tipo",
                             style: const TextStyle(
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Color(0xFF31ADA0),
                             ),
                           ),
-                          Text("   Items: $items"),
-                          Text("   Cantidad: $kg Kg"),
-                          Text("   Bolsa individual: $bolsa"),
+                          const SizedBox(height: 4),
+                          Text("Items: $items"),
+                          Text("Cantidad: $kg Kg"),
+                          Text("Bolsa individual: $bolsa"),
                         ],
                       ),
                     );
@@ -80,10 +90,11 @@ class HomeScreen extends GetView<HomeScreenController> {
 
                 const Divider(thickness: 1.2),
                 // Totales
-                Text("Total Kg: $totalKg"),
-                Text("Total Monedas: $totalMonedas"),
-                Text("En bolsas individuales: $totalBolsas"),
-                Text("Segregados correctamente: $segregadosCorrectamente"),
+                Text("Total de Residuos en Kg: $totalKg"),
+                Text("   Monedas: $totalMonedas"),
+                Text("Segregados Correctamente: $totalBolsas"),
+                Text("   Monedas: $segregadosCorrectamente"),
+                Text("Monedas a Recibir: $segregadosCorrectamente"),
                 const SizedBox(height: 16),
 
                 // Botones "Cancelar" y "Confirmar"
@@ -258,12 +269,14 @@ class HomeScreen extends GetView<HomeScreenController> {
       () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildRowTotal("Total Kg", "${totalKg.value.toStringAsFixed(2)} Kg"),
+          _buildRowTotal("Total de Residuos en Kg:",
+              "${totalKg.value.toStringAsFixed(2)} Kg"),
           _buildRowTotal(
-              "Total Monedas", "${totalMonedas.value.toStringAsFixed(2)}"),
-          _buildRowTotal("En bolsas individuales", "${totalBolsas.value}"),
+              "   Monedas:", "${totalMonedas.value.toStringAsFixed(2)}"),
+          _buildRowTotal("Segregados Correctmente:", "${totalBolsas.value}"),
+          _buildRowTotal("   Monedas:", "${segregadosCorrectamente.value}"),
           _buildRowTotal(
-              "Segregados correctamente", "${segregadosCorrectamente.value}"),
+              "Monedas a Recibir:", "${segregadosCorrectamente.value}"),
         ],
       ),
     );
@@ -527,7 +540,7 @@ class HomeScreen extends GetView<HomeScreenController> {
                       children: [
                         const Text(
                           "Selecciona el tipo de residuo y la cantidad estimada (Kg). "
-                          "Si lo estás separando en bolsas individuales, ¡no olvides marcar el ícono!",
+                          "Si lo estás separando en bolsas individuales, ¡no olvides marcar el ícono!, así recibiras unas monedas extras",
                           textAlign: TextAlign.justify,
                           style: TextStyle(fontSize: 15, height: 1.4),
                         ),
@@ -702,25 +715,87 @@ class HomeScreen extends GetView<HomeScreenController> {
                   final imageModel = images[index % images.length];
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        imageModel.url,
-                        fit: BoxFit.cover,
-                        width: screenWidth * 0.3,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.broken_image,
-                            size: 50,
-                            color: Colors.grey,
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Center(
-                              child: CircularProgressIndicator());
-                        },
-                      ),
+                    child: Stack(
+                      children: [
+                        // Imagen con marco dorado si es premiación
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: imageModel.tipo == 'premiacion'
+                                  ? const Color(0xFFFFD700)
+                                  : const Color.fromARGB(0, 81, 255, 0),
+                              width: 4.5,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Stack(
+                              children: [
+                                // Imagen principal
+                                Image.network(
+                                  imageModel.url,
+                                  fit: BoxFit.cover,
+                                  width: screenWidth * 0.3,
+                                  height: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(Icons.broken_image,
+                                        size: 50, color: Colors.grey);
+                                  },
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  },
+                                ),
+
+                                // Texto en la parte inferior directamente sobre la imagen
+                                Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 4),
+                                    color: const Color.fromRGBO(89, 217, 153, 1)
+                                        .withOpacity(0.9),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      imageModel.tipo == 'premiacion'
+                                          ? 'Premiación'
+                                          : 'Participación',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Emoji distintivo arriba a la izquierda
+                        Positioned(
+                          top: -6,
+                          left: 86,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 255, 255, 255)
+                                  .withOpacity(1),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Text(
+                              imageModel.tipo == 'premiacion' ? '🏆' : '🤝',
+                              style: const TextStyle(fontSize: 21),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 },

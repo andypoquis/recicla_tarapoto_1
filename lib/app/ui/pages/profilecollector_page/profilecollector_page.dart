@@ -92,7 +92,7 @@ class ProfilecollectorPage extends GetView<ProfilecollectorController> {
 
               // Sección de estadísticas
               const Text(
-                'Mis Aportes:',
+                'Mis Aporkkktes:',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,

@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 
-class NotificationsPage extends StatelessWidget {
+class NotificationsPage extends StatefulWidget {
+  @override
+  _NotificationsPageState createState() => _NotificationsPageState();
+}
+
+class _NotificationsPageState extends State<NotificationsPage> {
+  String selectedMotivo = '';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,37 +24,53 @@ class NotificationsPage extends StatelessWidget {
             const SizedBox(height: 10),
             _buildCard(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildTextField(label: 'Título'),
                   const SizedBox(height: 10),
-                  _buildTextField(label: 'Contenido', maxLines: 4),
+                  _buildTextField(label: 'Contenido', maxLines: 1),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // Acción de enviar comunicado
+                      },
+                      icon: Icon(Icons.send),
+                      label: Text('Enviar'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
 
-            // Sección: Subir Contenido de Usuario
+            // Sección: Subir Contenido al Carrusel
             Text(
-              'Subir Contenido de Usuario',
+              'Subir Contenido al Carrusel',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             _buildCard(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTextField(label: 'DNI Usuario'),
-                  const SizedBox(height: 10),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Text(
                         'Motivo:',
                         style: TextStyle(fontSize: 16),
                       ),
-                      const SizedBox(width: 10),
-                      _buildChip(label: 'Incentivo'),
-                      const SizedBox(width: 10),
-                      _buildChip(label: 'Participación'),
+                      const SizedBox(width: 6),
+                      _buildChip(label: 'Participacion'),
+                      const SizedBox(width: 6),
+                      _buildChip(label: 'Premio'),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -67,6 +90,23 @@ class NotificationsPage extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // Acción para subir contenido
+                      },
+                      icon: Icon(Icons.send), // mismo ícono que el otro botón
+                      label: Text('Enviar'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -76,7 +116,7 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
-  // Widget para construir un campo de texto
+  // Campo de texto
   Widget _buildTextField({required String label, int maxLines = 1}) {
     return TextField(
       maxLines: maxLines,
@@ -89,7 +129,7 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
-  // Widget para construir una tarjeta
+  // Tarjeta
   Widget _buildCard({required Widget child}) {
     return Card(
       shape: RoundedRectangleBorder(
@@ -103,13 +143,16 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
-  // Widget para construir un chip
+  // Chip de selección con estado
   Widget _buildChip({required String label}) {
+    final isSelected = selectedMotivo == label;
     return ChoiceChip(
       label: Text(label),
-      selected: false,
+      selected: isSelected,
       onSelected: (bool selected) {
-        // Acción para manejar selección del chip
+        setState(() {
+          selectedMotivo = selected ? label : '';
+        });
       },
     );
   }

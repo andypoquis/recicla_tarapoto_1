@@ -3,10 +3,12 @@
 class CarouselImage {
   final String? id;
   final String url;
+  final String tipo; // 👈 Nuevo campo: 'participacion' o 'premiacion'
 
   CarouselImage({
     this.id,
     required this.url,
+    required this.tipo,
   });
 
   /// Convierte un documento de Firestore a nuestro modelo [CarouselImage].
@@ -14,6 +16,7 @@ class CarouselImage {
     return CarouselImage(
       id: docId,
       url: data['url'] ?? '',
+      tipo: data['tipo'] ?? 'participacion', // Valor por defecto si no viene
     );
   }
 
@@ -21,6 +24,7 @@ class CarouselImage {
   Map<String, dynamic> toFirestore() {
     return {
       'url': url,
+      'tipo': tipo,
     };
   }
 }

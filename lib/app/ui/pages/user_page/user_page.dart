@@ -279,25 +279,97 @@ class UserScreen extends GetView<UserController> {
 
                 // Sección de info del recolector (si el usuario actual NO es recolector)
                 if (!userData.iscollector) ...[
-                  const Text(
-                    'Mi Recolector:',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Mi Recolector',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: collectorData != null
+                                ? Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.person,
+                                              color: Color(0xFF31ADA0)),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              '${collectorData.name} ${collectorData.lastname}',
+                                              style:
+                                                  const TextStyle(fontSize: 16),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: const [
+                                          Icon(Icons.group,
+                                              color: Color(0xFF31ADA0)),
+                                          SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              'Asociación: Nuevo Amanecer',
+                                              style: TextStyle(fontSize: 16),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.phone,
+                                              color: Color(0xFF31ADA0)),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              'Teléfono: ${collectorData.phoneNumber}',
+                                              style:
+                                                  const TextStyle(fontSize: 16),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: const [
+                                          Icon(Icons.access_time,
+                                              color: Color(0xFF31ADA0)),
+                                          SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              'Horario: Miércoles de 7 a 3:30pm',
+                                              style: TextStyle(fontSize: 16),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                : const Text(
+                                    'No se encontró información del recolector'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  // Si ya tenemos collectorData, lo mostramos:
-                  if (collectorData != null) ...[
-                    Text(
-                        'Nombre Completo: ${collectorData.name} ${collectorData.lastname}'),
-                    const Text('Asociación: Nuevo Amanecer'),
-                    Text('Teléfono: ${collectorData.phoneNumber}'),
-                    const Text('Horario: Miércoles de 7am a 3.30pm'),
-                  ] else ...[
-                    // Si collectorData == null (no se encontró recolector o falló consulta)
-                    const Text('No se encontró información del recolector'),
-                  ],
                 ],
               ],
             ),

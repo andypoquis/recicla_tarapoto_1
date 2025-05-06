@@ -79,7 +79,7 @@ class HomePage extends GetView<HomeController> {
           label: '',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person_pin),
+          icon: Icon(Icons.card_giftcard),
           label: '',
         ),
       ];
