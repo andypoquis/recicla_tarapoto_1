@@ -9,7 +9,7 @@ import 'package:recicla_tarapoto_1/app/ui/pages/splash_page/splash_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // Inicializa Firebase
+  await Firebase.initializeApp(); // lee google-services.json bajo el capó
 
   // Inicializa GetStorage
   await GetStorage.init('GlobalStorage');

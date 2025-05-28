@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../controllers/notifications_controller.dart';
 
 class NotificationsPage extends StatefulWidget {
   @override
@@ -6,7 +8,7 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  String selectedMotivo = '';
+  final NotificationsController controller = Get.put(NotificationsController());
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +60,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             ),
             const SizedBox(height: 10),
             _buildCard(
-              child: Column(
+              child: Obx(() => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
@@ -68,9 +70,21 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         style: TextStyle(fontSize: 16),
                       ),
                       const SizedBox(width: 6),
-                      _buildChip(label: 'Participacion'),
+                      ChoiceChip(
+                        label: Text('participacion'),
+                        selected: controller.motivo.value == 'participacion',
+                        onSelected: (selected) {
+                          controller.setMotivo(selected ? 'participacion' : '');
+                        },
+                      ),
                       const SizedBox(width: 6),
-                      _buildChip(label: 'Premio'),
+                      ChoiceChip(
+                        label: Text('premio'),
+                        selected: controller.motivo.value == 'premio',
+                        onSelected: (selected) {
+                          controller.setMotivo(selected ? 'premio' : '');
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -82,21 +96,32 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         style: TextStyle(fontSize: 16),
                       ),
                       ElevatedButton.icon(
-                        onPressed: () {
-                          // Acción para subir archivo
-                        },
+                        onPressed: controller.isLoading.value
+                            ? null
+                            : () => controller.pickImage(),
                         icon: Icon(Icons.folder_open),
                         label: Text('Seleccionar archivo'),
                       ),
                     ],
                   ),
+                  if (controller.selectedImage.value != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Image.file(
+                        controller.selectedImage.value!,
+                        height: 120,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  if (controller.isLoading.value)
+                    const Center(child: CircularProgressIndicator()),
                   const SizedBox(height: 20),
                   Center(
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        // Acción para subir contenido
-                      },
-                      icon: Icon(Icons.send), // mismo ícono que el otro botón
+                      onPressed: controller.isLoading.value
+                          ? null
+                          : () => controller.subirImagenCarrusel(context),
+                      icon: Icon(Icons.send),
                       label: Text('Enviar'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
@@ -108,7 +133,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     ),
                   ),
                 ],
-              ),
+              )),
             ),
           ],
         ),
@@ -144,16 +169,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   // Chip de selección con estado
-  Widget _buildChip({required String label}) {
-    final isSelected = selectedMotivo == label;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (bool selected) {
-        setState(() {
-          selectedMotivo = selected ? label : '';
-        });
-      },
-    );
-  }
+  // (Ya no se usa, la selección se maneja con GetX)
+
 }
