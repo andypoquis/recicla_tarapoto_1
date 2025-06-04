@@ -10,8 +10,14 @@ import 'package:path/path.dart' as p; // ➊ nuevo
 class NotificationsController extends GetxController {
   // ---------------- observables -----------------
   final Rx<File?> selectedImage = Rx<File?>(null);
-  final RxString motivo = ''.obs;
+  final RxString reason = ''.obs;
   final RxBool isLoading = false.obs;
+
+  // Para comunicado
+  final Rx<TextEditingController> titleController = TextEditingController().obs;
+  final Rx<TextEditingController> contentController =
+      TextEditingController().obs;
+  final RxBool isSendingAnnouncement = false.obs;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -23,13 +29,39 @@ class NotificationsController extends GetxController {
     if (picked != null) selectedImage.value = File(picked.path);
   }
 
-  void setMotivo(String value) => motivo.value = value.trim();
+  void setReason(String value) => reason.value = value.trim();
 
   // ---------------- carga principal --------------
 
-  Future<void> subirImagenCarrusel(BuildContext context) async {
-    if (selectedImage.value == null || motivo.value.isEmpty) {
-      _snack(context, 'Seleccione una imagen y escriba un motivo.');
+  Future<void> sendAnnouncement(BuildContext context) async {
+    final title = titleController.value.text.trim();
+    final content = contentController.value.text.trim();
+    if (title.isEmpty || content.isEmpty) {
+      _snack(context, 'Please complete both fields.');
+      return;
+    }
+    isSendingAnnouncement.value = true;
+    try {
+      await FirebaseFirestore.instance.collection('announcements').add({
+        'title': title,
+        'content': content,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      _snack(context, 'Announcement sent successfully ✅', isError: false);
+      titleController.value.clear();
+      contentController.value.clear();
+    } on FirebaseException catch (e) {
+      _snack(context, 'Firebase error: ${e.code} – ${e.message}');
+    } catch (e) {
+      _snack(context, 'Unexpected error: $e');
+    } finally {
+      isSendingAnnouncement.value = false;
+    }
+  }
+
+  Future<void> uploadCarouselImage(BuildContext context) async {
+    if (selectedImage.value == null || reason.value.isEmpty) {
+      _snack(context, 'Select an image and write a reason.');
       return;
     }
 
@@ -56,7 +88,7 @@ class NotificationsController extends GetxController {
 
       // ---------- 3. Guardar documento en Firestore ----------
       await FirebaseFirestore.instance.collection('carousel_image').add({
-        'tipo': motivo.value,
+        'tipo': reason.value,
         'url': url,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -65,7 +97,7 @@ class NotificationsController extends GetxController {
 
       // ---------- 4. Reset ----------
       selectedImage.value = null;
-      motivo.value = '';
+      reason.value = '';
     } on FirebaseException catch (e) {
       _snack(context, 'Error Firebase: ${e.code} – ${e.message}');
     } catch (e) {

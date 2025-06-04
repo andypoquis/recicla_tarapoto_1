@@ -40,8 +40,8 @@ class RedeemedIncentiveModel {
       incentiveId: data['incentiveId'],
       name: data['name'] ?? '',
       description: data['description'] ?? '',
-      price: _toDouble(data['price']),
-      redeemedCoins: _toDouble(data['redeemedCoins']),
+      price: toDouble(data['price']),
+      redeemedCoins: toDouble(data['redeemedCoins']),
       status: data['status'] ?? 'pendiente',
       image: data['image'] ?? '',
       createdAt: data['createdAt'] is Timestamp
@@ -52,7 +52,7 @@ class RedeemedIncentiveModel {
     );
   }
 
-  static double _toDouble(dynamic value) {
+  static double toDouble(dynamic value) {
     if (value == null) return 0.0;
     if (value is int) return value.toDouble();
     if (value is double) return value;

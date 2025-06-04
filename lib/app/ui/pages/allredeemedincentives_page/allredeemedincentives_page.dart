@@ -73,12 +73,21 @@ class AllRedeemedIncentivesPage
                               size: 18, color: colorPrimaryDark),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: Text(
-                              incentive.userName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
+                            child: Builder(
+                              builder: (context) {
+                                print(
+                                    '[DEBUG UI] userName: \'${incentive.userName}\'');
+                                return Text(
+                                  incentive.userName.isNotEmpty
+                                      ? incentive.userName
+                                      : 'No userName',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ],
@@ -91,10 +100,20 @@ class AllRedeemedIncentivesPage
                               size: 18, color: colorPrimaryDark),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: Text(
-                              incentive.userAddress,
-                              style: const TextStyle(
-                                  fontSize: 14, color: Colors.grey),
+                            child: Builder(
+                              builder: (context) {
+                                print(
+                                    '[DEBUG UI] userAddress: \'${incentive.userAddress}\'');
+                                return Text(
+                                  incentive.userAddress.isNotEmpty
+                                      ? incentive.userAddress
+                                      : 'No address',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ],
