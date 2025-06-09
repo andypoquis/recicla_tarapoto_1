@@ -18,6 +18,7 @@ class HomeController extends GetxController {
 
   // Guarda el total de monedas que obtendremos desde Firestore
   RxDouble totalCoins = 0.0.obs;
+  RxBool isLoadingCoins = false.obs;
 
   @override
   void onInit() {
@@ -40,43 +41,54 @@ class HomeController extends GetxController {
     selectedIndex.value = index;
   }
 
-  /// Consulta la colección 'wasteCollections' en Firestore y suma los totalCoins.
-  /// Filtra por userReference == /users/$userId y isRecycled == true
+  /// Consulta las colecciones 'wasteCollections' y 'redeemedIncentives' en Firestore 
+  /// para calcular el saldo de monedas del usuario.
+  /// Saldo = (suma de wasteCollections.totalCoins donde isRecycled == true) - (suma de redeemedIncentives.redeemedCoins)
   Future<void> fetchTotalCoins() async {
+    isLoadingCoins.value = true;
     try {
-      // Asegúrate de extraer correctamente el ID del usuario
-      // Asumiendo que en `userMap` está userMap['id'] o userMap['uid']
       final String? userId = userMap?['id'] ?? userMap?['uid'];
       if (userId == null) {
-        // No tenemos userId, abortamos
+        totalCoins.value = 0.0;
         return;
       }
 
-      // Construye la referencia del usuario en Firestore
-      // Si en la BD guardas un DocumentReference, normalmente se ve así:
       final DocumentReference userRef =
           FirebaseFirestore.instance.collection('users').doc(userId);
 
-      // Consulta a wasteCollections
-      final querySnapshot = await FirebaseFirestore.instance
+      double sumWasteCollections = 0.0;
+      double sumRedeemedIncentives = 0.0;
+
+      // 1) Sumar totalCoins de wasteCollections donde userReference == userRef y isRecycled == true
+      final wasteCollectionsSnap = await FirebaseFirestore.instance
           .collection('wasteCollections')
           .where('userReference', isEqualTo: userRef)
           .where('isRecycled', isEqualTo: true)
           .get();
 
-      double sum = 0.0;
-      for (var doc in querySnapshot.docs) {
-        // Aquí obtienes el campo 'totalCoins'
+      for (var doc in wasteCollectionsSnap.docs) {
         final data = doc.data();
-        final double coins = _toDouble(data['totalCoins']);
-        sum += coins;
+        sumWasteCollections += _toDouble(data['totalCoins']);
       }
 
-      // Asignamos al observable totalCoins
-      totalCoins.value = sum;
+      // 2) Sumar redeemedCoins de redeemedIncentives donde userReference == userRef
+      final redeemedIncentivesSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('redeemedIncentives')
+          .get();
+
+      for (final doc in redeemedIncentivesSnap.docs) {
+        sumRedeemedIncentives += (doc.data()['redeemedCoins'] as num).toDouble();
+      }
+
+      // 3) Calcular el total y actualizar el estado
+      totalCoins.value = sumWasteCollections - sumRedeemedIncentives;
     } catch (e) {
-      print('Error al obtener totalCoins: $e');
+      print('Error fetching total coins: $e');
       totalCoins.value = 0.0;
+    } finally {
+      isLoadingCoins.value = false;
     }
   }
 

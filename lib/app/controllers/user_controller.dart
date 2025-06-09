@@ -25,6 +25,7 @@ class UserController extends GetxController {
     final Map<String, dynamic>? userMap = _box.read('userData');
     if (userMap != null) {
       userModel.value = UserModel.fromFirestore(userMap);
+      print("User loaded from storage: ${userModel.value!.uid}");
     } else {
       userModel.value = null;
     }

@@ -1,41 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:recicla_tarapoto_1/app/controllers/notification_controller.dart';
 
 class NotificationsDialog extends StatelessWidget {
-  const NotificationsDialog({super.key});
+  NotificationsDialog({super.key});
 
   static const Color primaryGreen = Color(0xFF16A34A);
+  final NotificationController controller = Get.put(NotificationController());
+
+  IconData _getIconForType(String type) {
+    switch (type) {
+      case 'monedas':
+        return Icons.monetization_on_outlined;
+      case 'incentivo':
+        return Icons.star_outline;
+      case 'actualizacion':
+        return Icons.campaign_outlined;
+      default:
+        return Icons.notifications_none;
+    }
+  }
+
+  Color _getColorForType(String type) {
+    switch (type) {
+      case 'monedas':
+        return primaryGreen;
+      case 'incentivo':
+        return Colors.blueAccent;
+      case 'actualizacion':
+        return Colors.orangeAccent;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final notifications = [
-      {
-        "type": "monedas",
-        "title": "Monedas",
-        "date": "10/09/2024",
-        "description":
-            "Recibiste un total de 30 monedas por tu entrega de residuos aprovechables."
-      },
-      {
-        "type": "normal",
-        "title": "Incentivo",
-        "date": "12/09/2024",
-        "description": "Canjeaste el incentivo “Abono” de 23 Monedas."
-      },
-      {
-        "type": "importante",
-        "title": "Actualización",
-        "date": "13/09/2024",
-        "description":
-            "Recuerda que ahora solo se aceptan residuos limpios y secos."
-      },
-    ];
-
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
       backgroundColor: Colors.white,
       insetPadding: const EdgeInsets.all(20),
       child: Container(
-        padding: const EdgeInsets.all(25),
+        padding: const EdgeInsets.fromLTRB(20, 5, 20, 20),
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
@@ -56,112 +62,113 @@ class NotificationsDialog extends StatelessWidget {
             Align(
               alignment: Alignment.topRight,
               child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.black54),
-                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close, color: Colors.black54, size: 28),
+                onPressed: () {
+                  Get.back();
+                  Get.delete<NotificationController>(); 
+                }
               ),
             ),
-            const SizedBox(height: 5),
             const Text(
-              "Anuncios Importantes",
+              "Notificaciones",
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: primaryGreen,
+                color: Colors.black87,
               ),
             ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView.separated(
-                itemCount: notifications.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final item = notifications[index];
-                  return _buildNotificationItem(
-                    type: item["type"]!,
-                    title: item["title"]!,
-                    date: item["date"]!,
-                    description: item["description"]!,
-                  );
-                },
-              ),
-            ),
+            const SizedBox(height: 15),
+            Obx(() { 
+              if (controller.isLoading.value) {
+                return const Center(child: CircularProgressIndicator(color: primaryGreen));
+              }
+              if (controller.notifications.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 30.0),
+                    child: Text(
+                      "No tienes notificaciones nuevas.",
+                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }
+              return Expanded(
+                child: ListView.separated(
+                  shrinkWrap: true, 
+                  itemCount: controller.notifications.length,
+                  separatorBuilder: (context, index) => const Divider(
+                    color: Colors.black12,
+                    height: 20,
+                    thickness: 1,
+                  ),
+                  itemBuilder: (context, index) {
+                    final notification = controller.notifications[index];
+                    return _buildNotificationCard(
+                      context,
+                      icon: _getIconForType(notification.type),
+                      color: _getColorForType(notification.type),
+                      title: notification.title,
+                      date: controller.formatDate(notification.date),
+                      description: notification.description,
+                    );
+                  },
+                ),
+              );
+            }),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNotificationItem({
-    required String type,
+  Widget _buildNotificationCard(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
     required String title,
     required String date,
     required String description,
   }) {
-    final IconData icon;
-    switch (type) {
-      case 'monedas':
-        icon = Icons.monetization_on_outlined;
-        break;
-      case 'importante':
-        icon = Icons.priority_high_outlined;
-        break;
-      case 'normal':
-      default:
-        icon = Icons.campaign_outlined;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: primaryGreen.withOpacity(0.2)),
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: primaryGreen.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Encabezado
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, size: 20, color: primaryGreen),
-                  const SizedBox(width: 6),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.black87,
-                    ),
+          Icon(icon, color: color, size: 28),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black.withOpacity(0.85),
                   ),
-                ],
-              ),
-              Text(
-                date,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.black54,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
+                const SizedBox(height: 3),
+                Text(
+                  date,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    color: Colors.black.withOpacity(0.75),
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
-            textAlign: TextAlign.justify,
           ),
         ],
       ),

@@ -26,6 +26,11 @@ class HomeScreen extends GetView<HomeScreenController> {
     showDialog(
       context: context,
       builder: (ctx) {
+        // Pre-calculate values with new names for clarity and to ensure correct types
+        final int bonusCoinsFromSegregados = segregadosCorrectamente * 5;
+        final double finalTotalMonedasARecibir =
+            totalMonedas + bonusCoinsFromSegregados.toDouble();
+
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
@@ -91,10 +96,12 @@ class HomeScreen extends GetView<HomeScreenController> {
                 const Divider(thickness: 1.2),
                 // Totales
                 Text("Total de Residuos en Kg: $totalKg"),
-                Text("   Monedas: $totalMonedas"),
-                Text("Segregados Correctamente: $totalBolsas"),
-                Text("   Monedas: $segregadosCorrectamente"),
-                Text("Monedas a Recibir: $segregadosCorrectamente"),
+                Text("Total Monedas por Residuos: $totalMonedas"),
+                Text(
+                    "Segregados Correctamente (cantidad): $segregadosCorrectamente"),
+                Text(
+                    "Monedas por Segregación (+5 c/u): $bonusCoinsFromSegregados"),
+                Text("Monedas Totales a Recibir: $finalTotalMonedasARecibir"),
                 const SizedBox(height: 16),
 
                 // Botones "Cancelar" y "Confirmar"
@@ -150,7 +157,8 @@ class HomeScreen extends GetView<HomeScreenController> {
                           address: userData.address,
                           isRecycled: false,
                           totalBags: totalBolsas.toDouble(),
-                          totalCoins: totalMonedas,
+                          totalCoins:
+                              totalMonedas + (segregadosCorrectamente * 5),
                           totalKg: totalKg,
                           correctlySegregated: segregadosCorrectamente,
                           residues: residueItems,
@@ -226,7 +234,7 @@ class HomeScreen extends GetView<HomeScreenController> {
               ),
               const SizedBox(height: 20),
               const Text(
-                "Recuerda que se te asignarán 2 monedas extras por segregar de manera correcta.",
+                "Recuerda que se te asignarán 5 monedas extras por segregar de manera correcta.",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.white),
               ),
@@ -271,12 +279,14 @@ class HomeScreen extends GetView<HomeScreenController> {
         children: [
           _buildRowTotal("Total de Residuos en Kg:",
               "${totalKg.value.toStringAsFixed(2)} Kg"),
-          _buildRowTotal(
-              "   Monedas:", "${totalMonedas.value.toStringAsFixed(2)}"),
-          _buildRowTotal("Segregados Correctmente:", "${totalBolsas.value}"),
-          _buildRowTotal("   Monedas:", "${segregadosCorrectamente.value}"),
-          _buildRowTotal(
-              "Monedas a Recibir:", "${segregadosCorrectamente.value}"),
+          _buildRowTotal("Total Monedas por Residuos:",
+              "${totalMonedas.value.toStringAsFixed(0)}"),
+          _buildRowTotal("Segregados Correctamente (cantidad):",
+              "${segregadosCorrectamente.value}"),
+          _buildRowTotal("Monedas por Segregación (+5 c/u):",
+              "${segregadosCorrectamente.value * 5}"),
+          _buildRowTotal("Monedas Totales a Recibir:",
+              "${totalMonedas.value + (segregadosCorrectamente.value * 5)}"),
         ],
       ),
     );
@@ -465,12 +475,18 @@ class HomeScreen extends GetView<HomeScreenController> {
 
     // Recalcula totales cuando algo cambia
     void _calculateTotals() {
+      print(
+          "_calculateTotals CALLED - Timestamp: ${DateTime.now().toIso8601String()}");
       totalKg.value = 0.0;
       totalMonedas.value = 0.0;
       totalBolsas.value = 0;
       segregadosCorrectamente.value = 0;
+      print(
+          "  Initial segregadosCorrectamente.value: ${segregadosCorrectamente.value}");
 
       for (var i = 0; i < residuos.length; i++) {
+        print(
+            "  Looping for residue $i (${residuos[i]['tipo']}): isKgFieldEnabled=${isKgFieldEnabled[i]}, selectedIcon=${selectedIcons[i]}");
         if (isKgFieldEnabled[i]) {
           final kg = double.tryParse(kgControllers[i].text) ?? 0.0;
           // 1 Kg => 3 monedas (ejemplo)
@@ -480,12 +496,16 @@ class HomeScreen extends GetView<HomeScreenController> {
 
           if (selectedIcons[i]) {
             segregadosCorrectamente.value += 1;
+            print(
+                "    Residue $i: selectedIcon is TRUE, incrementing segregadosCorrectamente. New value: ${segregadosCorrectamente.value}");
           }
         }
       }
 
       // Cada tipo de residuo activado cuenta como 1 bolsa
       totalBolsas.value = isKgFieldEnabled.where((enabled) => enabled).length;
+      print(
+          "  _calculateTotals FINISHED. Final segregadosCorrectamente.value: ${segregadosCorrectamente.value}, totalMonedas.value: ${totalMonedas.value}");
     }
 
     // Listeners para recalcular si se modifican Kg en cualquier TextField
@@ -721,7 +741,7 @@ class HomeScreen extends GetView<HomeScreenController> {
                         Container(
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: imageModel.tipo == 'premiacion'
+                              color: imageModel.tipo == 'premio'
                                   ? const Color(0xFFFFD700)
                                   : const Color.fromARGB(0, 81, 255, 0),
                               width: 4.5,
@@ -762,8 +782,8 @@ class HomeScreen extends GetView<HomeScreenController> {
                                         .withOpacity(0.9),
                                     alignment: Alignment.center,
                                     child: Text(
-                                      imageModel.tipo == 'premiacion'
-                                          ? 'Premiación'
+                                      imageModel.tipo == 'premio'
+                                          ? 'premio'
                                           : 'Participación',
                                       style: const TextStyle(
                                         color: Colors.white,
@@ -790,7 +810,7 @@ class HomeScreen extends GetView<HomeScreenController> {
                               borderRadius: BorderRadius.circular(30),
                             ),
                             child: Text(
-                              imageModel.tipo == 'premiacion' ? '🏆' : '🤝',
+                              imageModel.tipo == 'premio' ? '🏆' : '🤝',
                               style: const TextStyle(fontSize: 21),
                             ),
                           ),

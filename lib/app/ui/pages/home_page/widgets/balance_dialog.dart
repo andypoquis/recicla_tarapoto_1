@@ -2,10 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recicla_tarapoto_1/app/controllers/home_controller.dart';
 
-class BalanceDialog extends StatelessWidget {
+class BalanceDialog extends StatefulWidget {
   const BalanceDialog({super.key});
 
+  @override
+  State<BalanceDialog> createState() => _BalanceDialogState();
+}
+
+class _BalanceDialogState extends State<BalanceDialog> {
+
   static const Color primaryGreen = Color(0xFF16A34A);
+
+  @override
+  void initState() {
+    super.initState();
+    // Llama a fetchTotalCoins cada vez que el diálogo se abre.
+    Get.find<HomeController>().fetchTotalCoins();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +59,19 @@ class BalanceDialog extends StatelessWidget {
             const SizedBox(height: 0),
 
             Obx(() {
+              if (homeController.isLoadingCoins.value) {
+                return Container(
+                  height: 125, // Height to match the coin display container
+                  width: 125,
+                  margin: const EdgeInsets.symmetric(vertical: 10),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: primaryGreen,
+                      strokeWidth: 3,
+                    ),
+                  ),
+                );
+              }
               final coins = homeController.totalCoins.value;
               return TweenAnimationBuilder(
                 tween: Tween<double>(begin: 0, end: coins.toDouble()),
@@ -98,6 +124,7 @@ class BalanceDialog extends StatelessWidget {
               style: TextStyle(fontSize: 14, color: Colors.black54),
             ),
             const SizedBox(height: 6),
+
 
             // Equivalencias
             _buildEquivalenceList(),

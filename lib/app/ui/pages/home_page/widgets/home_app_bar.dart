@@ -36,7 +36,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                   // Mostramos el diálogo de notificaciones
                   showDialog(
                     context: context,
-                    builder: (_) => const NotificationsDialog(),
+                    builder: (_) => NotificationsDialog(),
                   );
                 },
               ),
