@@ -94,15 +94,22 @@ class HomeScreen extends GetView<HomeScreenController> {
                   }),
 
                 const Divider(thickness: 1.2),
-                // Totales
-                Text("Total de Residuos en Kg: $totalKg"),
-                Text("Total Monedas por Residuos: $totalMonedas"),
-                Text(
-                    "Segregados Correctamente (cantidad): $segregadosCorrectamente"),
-                Text(
-                    "Monedas por Segregación (+5 c/u): $bonusCoinsFromSegregados"),
-                Text("Monedas Totales a Recibir: $finalTotalMonedasARecibir"),
-                const SizedBox(height: 16),
+                // Totales (ahora scrollable y adaptable)
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Total de Residuos en Kg: $totalKg", softWrap: true),
+                        Text("Total Monedas por Residuos: $totalMonedas", softWrap: true),
+                        Text("Segregados Correctamente (cantidad): $segregadosCorrectamente", softWrap: true),
+                        Text("Monedas por Segregación (+5 c/u): $bonusCoinsFromSegregados", softWrap: true),
+                        Text("Monedas Totales a Recibir: $finalTotalMonedasARecibir", softWrap: true),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
 
                 // Botones "Cancelar" y "Confirmar"
                 Row(
@@ -293,16 +300,17 @@ class HomeScreen extends GetView<HomeScreenController> {
   }
 
   Widget _buildResiduoItem(
+    Map<String, dynamic> residuo,
     int index,
-    String tipo,
-    List<String> items,
+    List<TextEditingController> kgControllers,
+    RxList<bool> isKgFieldEnabled,
+    List<RxDouble> unitValues,
     RxList<bool> selectedIcons,
     List<RxList<bool>> selectedButtons,
-    RxList<bool> isKgFieldEnabled,
-    List<TextEditingController> kgControllers,
-    List<RxDouble> unitValues,
+    List<RxBool> isKgFieldNotEmpty,
+    VoidCallback calculateTotals,
+    VoidCallback showBolsaDialog,
     double screenWidth,
-    Function calculateTotals,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,47 +320,55 @@ class HomeScreen extends GetView<HomeScreenController> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              tipo,
+              residuo["tipo"],
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
               ),
             ),
-            Obx(
-              () => IconButton(
+            // Icono de bolsa usando el controlador para la activación
+            Obx(() {
+              // Se ejecuta cada vez que cambia updateUI
+              controller.updateUI.value;
+              
+              // Verificamos si hay texto en el campo
+              final bool isEnabled = controller.isShoppingBagEnabled(kgControllers[index]);
+              
+              return IconButton(
                 icon: Icon(
                   Icons.shopping_bag,
-                  color: selectedIcons[index]
-                      ? const Color(0xFF59D999)
-                      : Colors.grey.shade400,
+                  color: isEnabled
+                      ? (selectedIcons[index]
+                          ? const Color(0xFF59D999)  // Verde cuando está seleccionado
+                          : Colors.grey)
+                      : Colors.grey.withOpacity(0.5), // Gris cuando deshabilitado
                 ),
-                onPressed: () {
-                  if (!selectedIcons[index]) {
-                    selectedIcons[index] = true;
-                    calculateTotals();
-                    _showBolsaDialog();
-                  } else {
-                    selectedIcons[index] = false;
-                    calculateTotals();
-                  }
-                },
-              ),
-            ),
+                // El botón solo se activa si hay texto
+                onPressed: isEnabled
+                    ? () {
+                        selectedIcons[index] = !selectedIcons[index];
+                        if (selectedIcons[index]) {
+                          _showBolsaDialog();
+                        }
+                        calculateTotals();
+                      }
+                    : null,
+              );
+            }),
           ],
         ),
         // Botones de ítems
         Wrap(
           spacing: 8.0,
-          children: items.asMap().entries.map((itemEntry) {
-            int itemIndex = itemEntry.key;
-            String item = itemEntry.value;
+          children: (residuo["items"] as List<String>).asMap().entries.map((entry) {
+            final itemIndex = entry.key;
+            final item = entry.value;
             return Obx(
               () => ElevatedButton(
                 onPressed: () {
                   selectedButtons[index][itemIndex] =
                       !selectedButtons[index][itemIndex];
-                  isKgFieldEnabled[index] =
-                      selectedButtons[index].contains(true);
+                  isKgFieldEnabled[index] = selectedButtons[index].contains(true);
                   calculateTotals();
                 },
                 style: ElevatedButton.styleFrom(
@@ -377,12 +393,17 @@ class HomeScreen extends GetView<HomeScreenController> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             SizedBox(
-              width: screenWidth * 0.3,
+              width: 100,
               child: Obx(
                 () => TextField(
                   controller: kgControllers[index],
                   keyboardType: TextInputType.number,
                   enabled: isKgFieldEnabled[index],
+                  onChanged: (value) {
+                    // Notificar al controlador que debe actualizar la UI
+                    controller.refreshUI();
+                    calculateTotals();
+                  },
                   decoration: InputDecoration(
                     labelText: "Kg Aprox.",
                     labelStyle: TextStyle(
@@ -408,7 +429,7 @@ class HomeScreen extends GetView<HomeScreenController> {
                 ),
                 Obx(
                   () => Text(
-                    "${unitValues[index].value.toStringAsFixed(2)}",
+                    "${unitValues[index].toStringAsFixed(2)}",
                     style: const TextStyle(fontSize: 18),
                   ),
                 ),
@@ -466,6 +487,8 @@ class HomeScreen extends GetView<HomeScreenController> {
           List.filled((residuos[index]["items"] as List).length, false).obs,
     );
     final isKgFieldEnabled = List.filled(residuos.length, false).obs;
+    final isKgFieldNotEmpty =
+        List.generate(residuos.length, (_) => false.obs);
 
     // Creamos un controller y un valor unitValue para cada tipo de residuo
     for (var _ in residuos) {
@@ -570,16 +593,17 @@ class HomeScreen extends GetView<HomeScreenController> {
                           int i = entry.key;
                           var res = entry.value;
                           return _buildResiduoItem(
+                            res,
                             i,
-                            res["tipo"] as String,
-                            res["items"] as List<String>,
+                            kgControllers,
+                            isKgFieldEnabled,
+                            unitValues,
                             selectedIcons,
                             selectedButtons,
-                            isKgFieldEnabled,
-                            kgControllers,
-                            unitValues,
-                            screenWidth,
+                            isKgFieldNotEmpty,
                             _calculateTotals,
+                            _showBolsaDialog,
+                            screenWidth,
                           );
                         }).toList(),
 

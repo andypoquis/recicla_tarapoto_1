@@ -11,6 +11,18 @@ import '../data/models/carousel_image.dart';
 import '../data/provider/home_provider.dart';
 
 class HomeScreenController extends GetxController {
+  // Variable reactiva para actualizar la interfaz cuando cambia el texto de los campos
+  final updateUI = 0.obs;
+  
+  // Determina si el icono de bolsa debe estar habilitado para un controlador de texto dado
+  bool isShoppingBagEnabled(TextEditingController controller) {
+    return controller.text.isNotEmpty;
+  }
+  
+  // Forzar actualización de la UI cuando cambia un campo de texto
+  void refreshUI() {
+    updateUI.value++;
+  }
   // Controlador de scroll
   late ScrollController scrollController;
 
