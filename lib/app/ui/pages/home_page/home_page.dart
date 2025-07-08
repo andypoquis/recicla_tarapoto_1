@@ -11,7 +11,6 @@ import '../incentives_page/incentives_page.dart';
 import '../information_page/information_page.dart';
 import '../notifications_page/notifications_page.dart';
 import '../user_page/user_page.dart';
-import '../userinventory_page/userinventory_page.dart';
 // Importaciones de widgets separados
 import 'widgets/home_app_bar.dart';
 import 'widgets/home_bottom_navigation_bar.dart';
@@ -35,7 +34,6 @@ class HomePage extends GetView<HomeController> {
 
       final List<Widget> pagesCollector = [
         HomecollectorPage(),
-        UserinventoryPage(),
         NotificationsPage(),
         UserScreen(),
         AllRedeemedIncentivesPage(),
@@ -64,10 +62,6 @@ class HomePage extends GetView<HomeController> {
       final List<BottomNavigationBarItem> itemsCollector = const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home_repair_service),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.inventory),
           label: '',
         ),
         BottomNavigationBarItem(

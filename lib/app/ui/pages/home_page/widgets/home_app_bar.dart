@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:recicla_tarapoto_1/app/ui/pages/home_page/widgets/balance_dialog.dart';
+import 'package:recicla_tarapoto_1/app/controllers/user_controller.dart';
 import 'package:recicla_tarapoto_1/app/ui/pages/home_page/widgets/notifications_dialog.dart';
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -67,21 +67,29 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
         // Ícono de balance
-        Transform.translate(
-          offset: const Offset(-20, 0.0),
-          child: IconButton(
-            icon: const Icon(Icons.monetization_on),
-            color: Colors.white,
-            iconSize: 33,
-            onPressed: () {
-              // Mostramos el diálogo de balance
-              showDialog(
-                context: context,
-                builder: (_) => const BalanceDialog(),
-              );
-            },
-          ),
-        ),
+        Obx(() {
+          final userController = Get.find<UserController>();
+          if (userController.userModel.value?.iscollector == true) {
+            return const SizedBox.shrink(); // No mostrar si es recolector
+          }
+          return Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.monetization_on,
+                  color: Colors.white,
+                  size: 28,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${userController.currentCoinsBalance.value}',
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
+            ),
+          );
+        }),
       ],
       flexibleSpace: Container(
         decoration: const BoxDecoration(
