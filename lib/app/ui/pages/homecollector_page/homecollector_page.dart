@@ -1,9 +1,11 @@
 // lib/app/ui/pages/homecollector/homecollector_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import '../../../controllers/homecollector_controller.dart';
 import '../../../data/models/waste_collection.dart';
+import '../../../data/models/residue_item.dart';
 
 class HomecollectorPage extends GetView<HomecollectorController> {
   @override
@@ -81,138 +83,106 @@ class HomecollectorPage extends GetView<HomecollectorController> {
     );
   }
 
+  // Método auxiliar para mostrar filas de detalle en el diálogo
+  Widget _buildDetailRow(String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: valueColor ?? Colors.black87,
+                fontWeight: valueColor != null ? FontWeight.w500 : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Abre el diálogo y llena automáticamente los campos
   void _showFloatingDialog(BuildContext context, WasteCollectionModel waste) {
-    // Define las categorías que quieres mostrar en tu UI
-    // (puede ser 1:1 con los "type" que guardas en Firestore, o distinto).
-    final uiResiduos = [
-      {
-        "type": "Papel y cartón",
-        "selectedItems": ["Papel", "Cartón"]
-      },
-      {
-        "type": "Plastico",
-        "selectedItems": ["Bags", "Bottles", "Grueso"]
-      },
-      {
-        "type": "Vidrio",
-        "selectedItems": ["Botella", "Frasco"]
-      },
-      {
-        "type": "Metales",
-        "selectedItems": ["Latas", "Cobre", "Chatarra"]
-      },
-      {
-        "type": "Tetra Pack",
-        "selectedItems": ["Envases"]
-      },
-    ];
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+  
+    // Fecha formateada
+    final dateFormatted = waste.date != null
+        ? DateFormat('dd/MM/yyyy HH:mm').format(waste.date!)
+        : 'Fecha no disponible';
 
-    // Controladores y reactividad
+    // Controladores para edición
     final kgControllers = <TextEditingController>[];
-    final unitValues = <RxDouble>[];
-    final selectedIcons = <RxBool>[]; // para el ícono de bolsa
-    final selectedButtons = <List<RxBool>>[]; // para los items
-
-    // Observables para totales
-    final totalKg = 0.0.obs;
-    final totalMonedas = 0.0.obs;
-    final totalBolsas = 0.obs;
-    final segregadosCorrectamente = 0.obs;
-
-    // 1. Inicializamos listas
-    for (var i = 0; i < uiResiduos.length; i++) {
-      kgControllers.add(TextEditingController());
-      unitValues.add(0.0.obs);
-      selectedIcons.add(false.obs);
-
-      // Cada categoría puede tener N sub-items
-      final itemsCount = (uiResiduos[i]["selectedItems"] as List).length;
-      selectedButtons.add(List.generate(itemsCount, (_) => false.obs));
+    final coinsControllers = <TextEditingController>[];
+    final segregationControllers = <bool>[];
+    
+    // Variables reactivas para los totales
+    final totalKg = waste.totalKg.obs;
+    final totalCoins = waste.totalCoins.obs;
+    final correctlySegregated = waste.correctlySegregated.obs;
+  
+    // Preparar controladores para cada residuo
+    for (var residue in waste.residues) {
+      kgControllers.add(TextEditingController(text: residue.approxKg.toString()));
+      // Manejo de coinsPerType con valor predeterminado si es necesario
+      final coinsText = residue.coinsPerType.isEmpty ? "0" : residue.coinsPerType;
+      coinsControllers.add(TextEditingController(text: coinsText));
+      // Añadir el valor de individualBag
+      segregationControllers.add(residue.individualBag);
     }
-
-    // 2. Sincronizamos la data de Firestore con la UI
-    //    Buscamos si en waste.residues hay un ResidueItem cuyo "type"
-    //    coincida con "tipo" (en tu BD p.e. "Plastic" vs. "Plástico"?).
-    //    Aquí asumo que guardas en BD "Plástico" tal cual. Si usas "Plastic",
-    //    puedes hacer un pequeño mapeo.
-    for (var i = 0; i < uiResiduos.length; i++) {
-      final tipoUI = uiResiduos[i]["type"] as String;
-
-      // Buscamos en la lista de ResidueItem
-      final found = waste.residues.firstWhereOrNull(
-        (r) => r.type.toLowerCase() == tipoUI.toLowerCase(),
-      );
-
-      if (found != null) {
-        // Llenamos el TextField de Kg
-        kgControllers[i].text = found.approxKg.toString();
-        // Llenamos unitValues con coinsPerType
-        final coinsDouble = double.tryParse(found.coinsPerType) ?? 0.0;
-        unitValues[i].value = coinsDouble;
-
-        // Marcamos la bolsa si individualBag = true
-        selectedIcons[i].value = found.individualBag;
-
-        // Marcamos selectedButtons
-        final itemsUI = uiResiduos[i]["selectedItems"] as List<String>;
-
-        for (var idxItem = 0; idxItem < itemsUI.length; idxItem++) {
-          final uiItem = itemsUI[idxItem];
-          // Si en Firestore guardaste "Bottles" y en UI es "Botellas",
-          // podrías necesitar un pequeño mapeo, p.e. "Bottles" -> "Botellas".
-          // De lo contrario, asumo coincide tal cual (case sensitive).
-          if (found.selectedItems.contains(uiItem)) {
-            selectedButtons[i][idxItem].value = true;
-          }
-        }
-      }
-    }
-
-    // 3. Función para recalcular totales cada vez que cambie algo
+    
+    // Función para recalcular totales
     void _calculateTotals() {
-      double tmpKg = 0;
-      double tmpMonedas = 0;
-      int tmpBolsas = 0;
-      int tmpSegregado = 0;
-
-      for (var i = 0; i < uiResiduos.length; i++) {
+      double newTotalKg = 0.0;
+      double newTotalCoins = 0.0;
+      int newCorrectlySegregated = 0;
+      
+      for (int i = 0; i < waste.residues.length; i++) {
+        // Sumar kg
         final kg = double.tryParse(kgControllers[i].text) ?? 0.0;
-        final coins = unitValues[i].value;
-        // Si hay algún item seleccionado en esa categoría:
-        final hasItemsSelected =
-            selectedButtons[i].any((selected) => selected.value);
-
-        if (hasItemsSelected) {
-          tmpKg += kg;
-          tmpMonedas += coins;
-          // Si la bolsa está activa
-          if (selectedIcons[i].value) {
-            tmpSegregado++;
-          }
-          tmpBolsas++;
+        newTotalKg += kg;
+        
+        // Monedas base: 3 monedas por cada kg
+        final kgCoins = kg * 3.0;
+        coinsControllers[i].text = kgCoins.toStringAsFixed(2);
+        
+        // Contar segregados correctamente y agregar 5 monedas extra por cada uno
+        if (segregationControllers[i]) {
+          newCorrectlySegregated += 1;
         }
       }
-
-      totalKg.value = tmpKg;
-      totalMonedas.value = tmpMonedas;
-      totalBolsas.value = tmpBolsas;
-      segregadosCorrectamente.value = tmpSegregado;
+      
+      // Calcular total de monedas: 3 por cada kg + 5 por cada segregación correcta
+      newTotalCoins = (newTotalKg * 3.0) + (newCorrectlySegregated * 5.0);
+      
+      // Actualizar valores reactivos
+      totalKg.value = newTotalKg;
+      totalCoins.value = newTotalCoins;
+      correctlySegregated.value = newCorrectlySegregated;
     }
-
-    // 4. Listeners para cada kgController
-    for (var i = 0; i < kgControllers.length; i++) {
-      kgControllers[i].addListener(() {
-        // Recalcula las monedas en base a tu lógica (si lo deseas)
-        // Ej: unitValues[i].value = double.tryParse(kgControllers[i].text) * 3
-        final kg = double.tryParse(kgControllers[i].text) ?? 0.0;
-        unitValues[i].value = kg * 3;
-
-        _calculateTotals();
-      });
+    
+    // Agregar listeners a los controladores para recalcular totales
+    for (var controller in kgControllers) {
+      controller.addListener(_calculateTotals);
     }
+    for (var controller in coinsControllers) {
+      controller.addListener(_calculateTotals);
+    }
+    
+    // Calcular totales iniciales
+    _calculateTotals();
 
-    // 5. Mostramos el diálogo
     showDialog(
       context: context,
       builder: (ctx) {
@@ -221,170 +191,389 @@ class HomecollectorPage extends GetView<HomecollectorController> {
             borderRadius: BorderRadius.circular(15),
           ),
           child: Container(
-            width: MediaQuery.of(ctx).size.width * 0.9,
-            height: MediaQuery.of(ctx).size.height * 0.8,
-            padding: const EdgeInsets.all(16.0),
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  Text(
-                    "Recolección Seleccionada: ${waste.address}",
-                    style: TextStyle(fontSize: 18),
-                    textAlign: TextAlign.center,
+            width: screenWidth * 0.9,
+            height: screenHeight * 0.8,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Column(
+              children: [
+                // Encabezado
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF31ADA0),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(15),
+                      topRight: Radius.circular(15),
+                    ),
                   ),
-                  SizedBox(height: 10),
-                  // Podrías mostrar más info, p.e.:
-                  Text("TotalKg Firestore: ${waste.totalKg}"),
-                  Text("TotalCoins Firestore: ${waste.totalCoins}"),
-                  // ...
+                  child: const Text(
+                    "Detalles de Recolección",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
 
-                  SizedBox(height: 10),
-                  Text("Tipo de Residuo",
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-
-                  // Generamos la interfaz
-                  ...uiResiduos.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final res = entry.value;
-                    final tipo = res["type"] as String;
-                    final items = res["selectedItems"] as List<String>;
-
-                    return Obx(() {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Fila: nombre tipo + ícono de bolsa
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                tipo,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.shopping_bag,
-                                  color: selectedIcons[i].value
-                                      ? const Color.fromARGB(255, 89, 217, 153)
-                                      : Colors.grey,
-                                ),
-                                onPressed: () {
-                                  selectedIcons[i].value =
-                                      !selectedIcons[i].value;
-                                  _calculateTotals();
-                                },
-                              ),
-                            ],
-                          ),
-
-                          // Botones de items
-                          Wrap(
-                            spacing: 8.0,
-                            children: items.asMap().entries.map((itemEntry) {
-                              final itemIndex = itemEntry.key;
-                              final itemText = itemEntry.value;
-
-                              return ElevatedButton(
-                                onPressed: () {
-                                  final currentVal =
-                                      selectedButtons[i][itemIndex].value;
-                                  selectedButtons[i][itemIndex].value =
-                                      !currentVal;
-                                  _calculateTotals();
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: selectedButtons[i][itemIndex]
-                                          .value
-                                      ? const Color.fromARGB(255, 89, 217, 153)
-                                      : const Color.fromARGB(
-                                          255, 238, 238, 238),
-                                ),
-                                child: Text(itemText),
-                              );
-                            }).toList(),
-                          ),
-
-                          // Kg y monedas
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              SizedBox(
-                                width: MediaQuery.of(ctx).size.width * 0.3,
-                                child: TextField(
-                                  controller: kgControllers[i],
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: "Kg Aprox.",
-                                    border: OutlineInputBorder(),
-                                  ),
-                                ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Monedas a Recibir",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12),
-                                  ),
-                                  Text(
-                                    unitValues[i].value.toStringAsFixed(2),
-                                    style: TextStyle(fontSize: 20),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-
-                          const Divider(),
-                        ],
-                      );
-                    });
-                  }).toList(),
-
-                  // Totales
-                  const Divider(),
-                  Obx(() {
-                    return Column(
+                // Contenido principal
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildTotalRow("Total Kg",
-                            "${totalKg.value.toStringAsFixed(2)} Kg"),
-                        _buildTotalRow("Total Monedas",
-                            "${totalMonedas.value.toStringAsFixed(2)}"),
-                        _buildTotalRow(
-                            "En bolsas individuales", "${totalBolsas.value}"),
-                        _buildTotalRow("Segregados correctamente",
-                            "${segregadosCorrectamente.value}"),
+                        // Información general
+                        Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Información General",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF31ADA0),
+                                  ),
+                                ),
+                                SizedBox(height: 10),
+                                _buildDetailRow("Dirección:", waste.address),
+                                _buildDetailRow("Fecha:", dateFormatted),
+                                _buildDetailRow(
+                                  "Estado:",
+                                  waste.isRecycled ? "Reciclado" : "Pendiente",
+                                  valueColor: waste.isRecycled
+                                      ? Colors.green
+                                      : Colors.orange,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: 20),
+
+                        // Detalles de residuos
+                        Text(
+                          "Detalle de Residuos",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF31ADA0),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        
+                        if (waste.residues.isEmpty)
+                          Center(
+                            child: Text("No hay residuos registrados."),
+                          )
+                        else
+                          ...List.generate(waste.residues.length, (index) {
+                            final residue = waste.residues[index];
+                            // Obtener ítems seleccionados
+                            String itemsText;
+                            if (residue.selectedItems.isEmpty) {
+                                itemsText = "Ninguno";
+                            } else {
+                                itemsText = residue.selectedItems.join(", ");
+                            }
+                                
+                            return Card(
+                              margin: EdgeInsets.only(bottom: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: Color(0xFF59D999),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      residue.type.isEmpty ? "Tipo no especificado" : residue.type,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF31ADA0),
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    _buildDetailRow("Ítems:", itemsText),
+                                    
+                                    // Campo editable para Kg
+                                    Row(
+                                      children: [
+                                        Text("Cantidad (Kg):", 
+                                          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[700]),
+                                        ),
+                                        SizedBox(width: 10),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: kgControllers[index],
+                                            keyboardType: TextInputType.number,
+                                            decoration: InputDecoration(
+                                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                              border: OutlineInputBorder(),
+                                              isDense: true,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    
+                                    // Campo editable para monedas
+                                    Row(
+                                      children: [
+                                        Text("Monedas:", 
+                                          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[700]),
+                                        ),
+                                        SizedBox(width: 10),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: coinsControllers[index],
+                                            keyboardType: TextInputType.number,
+                                            decoration: InputDecoration(
+                                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                              border: OutlineInputBorder(),
+                                              isDense: true,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    
+                                    // Toggle para segregación correcta
+                                    Row(
+                                      children: [
+                                        Text("Segregación correcta:", 
+                                          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[700]),
+                                        ),
+                                        SizedBox(width: 10),
+                                        StatefulBuilder(
+                                          builder: (context, setState) {
+                                            return Switch(
+                                              value: segregationControllers[index],
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  segregationControllers[index] = value;
+                                                });
+                                                // Recalcular totales cuando cambie el switch
+                                                _calculateTotals();
+                                              },
+                                              activeColor: Color(0xFF59D999),
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+
+                        SizedBox(height: 16),
+
+                        // Totales
+                        Card(
+                          color: Color(0xFFF4F6F5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Totales",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF31ADA0),
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                
+                                // Total Kg (reactivo)
+                                Row(
+                                  children: [
+                                    Text("Total Kg:", 
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Expanded(
+                                      child: Obx(() => TextField(
+                                        controller: TextEditingController(text: totalKg.value.toStringAsFixed(2)),
+                                        keyboardType: TextInputType.number,
+                                        readOnly: true,
+                                        decoration: InputDecoration(
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                          border: OutlineInputBorder(),
+                                          isDense: true,
+                                          fillColor: Colors.grey[100],
+                                          filled: true,
+                                        ),
+                                      )),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8),
+                                
+                                // Total Monedas (reactivo)
+                                Row(
+                                  children: [
+                                    Text("Total Monedas:", 
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Expanded(
+                                      child: Obx(() => TextField(
+                                        controller: TextEditingController(text: totalCoins.value.toStringAsFixed(2)),
+                                        keyboardType: TextInputType.number,
+                                        readOnly: true,
+                                        decoration: InputDecoration(
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                          border: OutlineInputBorder(),
+                                          isDense: true,
+                                          fillColor: Colors.grey[100],
+                                          filled: true,
+                                        ),
+                                      )),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8),
+                                
+                                // Correctamente segregados (reactivo)
+                                Row(
+                                  children: [
+                                    Text("Segregados correctamente:", 
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Expanded(
+                                      child: Obx(() => TextField(
+                                        controller: TextEditingController(text: correctlySegregated.value.toString()),
+                                        keyboardType: TextInputType.number,
+                                        readOnly: true,
+                                        decoration: InputDecoration(
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                          border: OutlineInputBorder(),
+                                          isDense: true,
+                                          fillColor: Colors.grey[100],
+                                          filled: true,
+                                        ),
+                                      )),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
-                    );
-                  }),
-                  const SizedBox(height: 20),
-
-                  ElevatedButton(
-                    onPressed: () async {
-                      Navigator.of(ctx).pop();
-                      // Ejemplo: Marcamos isRecycled=true
-                      // O actualizamos "residues" con los nuevos valores, etc.
-                      await Get.find<HomecollectorController>()
-                          .markAsRecycled(waste);
-
-                      Get.snackbar(
-                        "Recolección Solicitada",
-                        "Se actualizó isRecycled = true.",
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromRGBO(63, 188, 159, 1),
                     ),
-                    child: const Text("Confirmar"),
                   ),
-                ],
-              ),
+                ),
+
+                // Botones de acción
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      if (!waste.isRecycled)
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              // Preparar actualizaciones
+                              List<ResidueItem> updatedResidues = [];
+                              for (int i = 0; i < waste.residues.length; i++) {
+                                final residue = waste.residues[i];
+                                updatedResidues.add(ResidueItem(
+                                  type: residue.type,
+                                  approxKg: double.tryParse(kgControllers[i].text) ?? residue.approxKg,
+                                  coinsPerType: coinsControllers[i].text,
+                                  individualBag: segregationControllers[i],
+                                  selectedItems: residue.selectedItems,
+                                ));
+                              }
+                              
+                              // Crear modelo actualizado con valores reactivos
+                              final updatedWaste = WasteCollectionModel(
+                                id: waste.id,
+                                address: waste.address,
+                                isRecycled: true,
+                                totalBags: waste.totalBags,
+                                totalCoins: totalCoins.value,
+                                totalKg: totalKg.value,
+                                correctlySegregated: correctlySegregated.value,
+                                residues: updatedResidues,
+                                userReference: waste.userReference,
+                                date: waste.date,
+                              );
+                              
+                              Navigator.of(ctx).pop();
+                              await controller.markAsRecycled(updatedWaste);
+                              Get.snackbar(
+                                "Recolección completada",
+                                "La recolección ha sido marcada como reciclada",
+                                backgroundColor: Colors.green.withOpacity(0.7),
+                                colorText: Colors.white,
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF59D999),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text(
+                              "Guardar y Marcar como Reciclado",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      if (waste.isRecycled) 
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(ctx).pop();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey.shade300,
+                              foregroundColor: Colors.black87,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text("Cerrar"),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         );
