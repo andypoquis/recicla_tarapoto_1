@@ -331,8 +331,16 @@ class HomeScreen extends GetView<HomeScreenController> {
               // Se ejecuta cada vez que cambia updateUI
               controller.updateUI.value;
               
-              // Verificamos si hay texto en el campo
-              final bool isEnabled = controller.isShoppingBagEnabled(kgControllers[index]);
+              // Verificamos si hay texto en el campo y si algún botón está seleccionado
+              final bool hasText = kgControllers[index].text.isNotEmpty;
+              final bool anyButtonSelected = selectedButtons[index].contains(true);
+              final bool isEnabled = hasText && anyButtonSelected;
+              
+              // Si no hay botones seleccionados, asegurémonos de que el ícono esté gris
+              if (!anyButtonSelected && selectedIcons[index]) {
+                selectedIcons[index] = false;
+                calculateTotals();
+              }
               
               return IconButton(
                 icon: Icon(
@@ -343,7 +351,7 @@ class HomeScreen extends GetView<HomeScreenController> {
                           : Colors.grey)
                       : Colors.grey.withOpacity(0.5), // Gris cuando deshabilitado
                 ),
-                // El botón solo se activa si hay texto
+                // El botón solo se activa si hay texto y algún botón seleccionado
                 onPressed: isEnabled
                     ? () {
                         selectedIcons[index] = !selectedIcons[index];
@@ -366,9 +374,36 @@ class HomeScreen extends GetView<HomeScreenController> {
             return Obx(
               () => ElevatedButton(
                 onPressed: () {
-                  selectedButtons[index][itemIndex] =
-                      !selectedButtons[index][itemIndex];
-                  isKgFieldEnabled[index] = selectedButtons[index].contains(true);
+                  // Cambiar el estado del botón actual
+                  selectedButtons[index][itemIndex] = !selectedButtons[index][itemIndex];
+                  
+                  // Verificar si todos los tipos de residuos están desmarcados
+                  final anySelected = selectedButtons[index].contains(true);
+                  
+                  // Si ningún botón está seleccionado, reiniciar todo
+                  if (!anySelected) {
+                    print('Todos los ítems desmarcados para ${residuo["tipo"]}. Reiniciando valores...');
+                    
+                    // Deshabilitar el campo de kg
+                    isKgFieldEnabled[index] = false;
+                    
+                    // Limpiar el campo de kilos
+                    kgControllers[index].clear();
+                    
+                    // Reiniciar el ícono de segregación correcta
+                    selectedIcons[index] = false;
+                    
+                    // Actualizar los valores unitarios
+                    unitValues[index].value = 0.0;
+                    
+                    // Forzar un rebuild para actualizar la UI
+                    controller.refreshUI();
+                  } else {
+                    // Si hay al menos un botón seleccionado, habilitar el campo
+                    isKgFieldEnabled[index] = true;
+                  }
+                  
+                  // Recalcular los totales
                   calculateTotals();
                 },
                 style: ElevatedButton.styleFrom(

@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recicla_tarapoto_1/app/controllers/user_controller.dart';
+import 'package:recicla_tarapoto_1/app/controllers/user_stats_controller.dart';
 
 class UserScreen extends GetView<UserController> {
-  const UserScreen({Key? key}) : super(key: key);
+  UserScreen({Key? key}) : super(key: key);
 
+  // Instanciar el controlador de estadísticas a nivel de clase
+  final UserStatsController statsController = UserStatsController();
+  
   @override
   Widget build(BuildContext context) {
-    // Forzar la carga de estadísticas cuando se construye la pantalla
+    // Registrar el controlador si no está registrado ya
+    if (!Get.isRegistered<UserStatsController>()) {
+      Get.put(statsController);
+    }
+    
+    // Inicializar y forzar la carga de estadísticas cuando se construye la pantalla
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Establecer valores mínimos garantizados
-      controller.totalKgReciclados.value = 10.5;
-      controller.totalRecolecciones.value = 3;
-      controller.totalIncentivosCanjeados.value = 2;
-
-      // Intentar cargar datos reales
-      controller.loadUserStatistics();
-      print('🔄 Forzando carga de estadísticas desde UserScreen');
+      // Cargar datos reales desde Firebase
+      statsController.loadUserStats();
+      print('🔄 Forzando carga de estadísticas reales desde Firebase');
     });
 
     return Scaffold(
@@ -123,6 +127,24 @@ class UserScreen extends GetView<UserController> {
                                 color: Color(0xFF31ADA0),
                               ),
                             ),
+                            const SizedBox(width: 8),
+                            // Botón para actualizar estadísticas
+                            IconButton(
+                              icon: const Icon(Icons.refresh, size: 20, color: Color(0xFF31ADA0)),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Actualizar estadísticas',
+                              onPressed: () {
+                                // Actualizar estadísticas
+                                statsController.refreshStats();
+                                Get.snackbar(
+                                  'Actualizando', 
+                                  'Cargando datos más recientes...',
+                                  backgroundColor: Colors.green.withOpacity(0.2),
+                                  duration: const Duration(seconds: 2)
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ],
@@ -147,79 +169,121 @@ class UserScreen extends GetView<UserController> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Residuos reciclados
-                          Row(
-                            children: const [
-                              Icon(Icons.recycling, color: Color(0xFF31ADA0)),
-                              SizedBox(width: 8),
-                              Text(
-                                'Residuos Reciclados:',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                '10.5 Kg',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF31ADA0),
-                                ),
-                              ),
-                            ],
+                          GetX<UserStatsController>(
+                            init: statsController,
+                            builder: (controller) {
+                              return Row(
+                                children: [
+                                  const Icon(Icons.recycling, color: Color(0xFF31ADA0)),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Residuos Reciclados:',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  controller.isLoading.value
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFF31ADA0),
+                                        ),
+                                      )
+                                    : Text(
+                                        '${controller.totalKgReciclados.value.toStringAsFixed(1)} Kg',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF31ADA0),
+                                        ),
+                                      ),
+                                ],
+                              );
+                            },
                           ),
                           const SizedBox(height: 10),
                           Row(
                             children: [
                               Expanded(
-                                child: Row(
-                                  children: const [
-                                    Icon(Icons.card_giftcard,
-                                        size: 20, color: Color(0xFF31ADA0)),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Incentivos:',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      '2',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF31ADA0),
-                                      ),
-                                    ),
-                                  ],
+                                child: GetX<UserStatsController>(
+                                  init: statsController,
+                                  builder: (controller) {
+                                    return Row(
+                                      children: [
+                                        const Icon(Icons.card_giftcard,
+                                            size: 20, color: Color(0xFF31ADA0)),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          'Incentivos:',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        controller.isLoading.value
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Color(0xFF31ADA0),
+                                              ),
+                                            )
+                                          : Text(
+                                              '${statsController.totalIncentivosCanjeados.value}',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF31ADA0),
+                                              ),
+                                            ),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ),
                               Expanded(
-                                child: Row(
-                                  children: const [
-                                    Icon(Icons.repeat,
-                                        size: 20, color: Color(0xFF31ADA0)),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Recolecciones:',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      '3',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF31ADA0),
-                                      ),
-                                    ),
-                                  ],
+                                child: GetX<UserStatsController>(
+                                  init: statsController,
+                                  builder: (controller) {
+                                    return Row(
+                                      children: [
+                                        const Icon(Icons.repeat,
+                                            size: 20, color: Color(0xFF31ADA0)),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          'Recolecciones:',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        controller.isLoading.value
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Color(0xFF31ADA0),
+                                              ),
+                                            )
+                                          : Text(
+                                              '${statsController.totalRecolecciones.value}',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF31ADA0),
+                                              ),
+                                            ),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ),
                             ],
