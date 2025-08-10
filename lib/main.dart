@@ -9,9 +9,7 @@ import 'package:recicla_tarapoto_1/app/ui/pages/splash_page/splash_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // lee google-services.json bajo el capó
-
-  // Inicializa GetStorage
+  await Firebase.initializeApp();
   await GetStorage.init('GlobalStorage');
 
   runApp(
@@ -21,7 +19,21 @@ void main() async {
       theme: ThemeData(),
       defaultTransition: Transition.fade,
       home: SplashPage(),
-      getPages: AppPages.pages, // Aquí defines tus rutas
+      getPages: AppPages.pages,
+
+      // 👇 Limita el escalado de texto globalmente (solo usamos textScaler)
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        final double clamped =
+            mq.textScaleFactor.clamp(1.0, 1.1); // leemos, pero no lo seteamos
+        return MediaQuery(
+          data: mq.copyWith(
+            textScaler: TextScaler.linear(clamped),
+            // ⚠️ NO pongas textScaleFactor aquí, causa la aserción
+          ),
+          child: child!,
+        );
+      },
     ),
   );
 }

@@ -4,7 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
+// Ajusta este import al path real de tu proyecto:
 import '../data/models/incentive.dart';
+// Si realmente lo tienes en data/models, usa:
+// import '../data/models/incentive.dart';
+
 import '../data/provider/incentives_provider.dart';
 
 class IncentivesController extends GetxController {
@@ -15,6 +19,11 @@ class IncentivesController extends GetxController {
 
   /// Lista observable de incentivos
   RxList<Incentive> incentivesList = <Incentive>[].obs;
+
+  /// Flag para bloquear taps repetidos
+  final RxBool _isRedeeming = false.obs;
+
+  bool get isRedeeming => _isRedeeming.value;
 
   @override
   void onInit() {
@@ -29,88 +38,119 @@ class IncentivesController extends GetxController {
     });
   }
 
-  /// Método principal para canjear un incentivo
-  /// Primero verifica si el usuario tiene suficientes monedas
-  /// Si sí, guarda el canje en la subcolección redeemedIncentives.
+  /// Canjea un incentivo (1 unidad) con seguridad:
+  /// - Verifica usuario
+  /// - Verifica monedas (pre-chequeo)
+  /// - Transacción Firestore: decrementa stock ATÓMICAMENTE y registra el canje
   Future<void> redeemIncentive(Incentive incentive) async {
+    if (_isRedeeming.value) return; // evita doble tap
+    _isRedeeming.value = true;
+
     try {
       final Map<String, dynamic>? userData = _box.read('userData');
       if (userData == null) {
-        // No hay info del usuario
-        Get.snackbar(
-          'Error',
-          'No se encontró información del usuario',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('Error', 'No se encontró información del usuario',
+            snackPosition: SnackPosition.BOTTOM);
         return;
       }
 
-      // Puede estar en userData['id'] o userData['uid'], depende de tu login
       final String? userId = userData['id'] ?? userData['uid'];
       if (userId == null) {
-        Get.snackbar(
-          'Error',
-          'No se encontró el ID del usuario',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('Error', 'No se encontró el ID del usuario',
+            snackPosition: SnackPosition.BOTTOM);
         return;
       }
 
-      // 1) Obtenemos las monedas actuales
+      // Pre-chequeo de monedas (cálculo actual por sumatorias)
       final double currentCoins = await _getCurrentUserCoins(userId);
-
-      // 2) Verificamos si alcanza para el precio del incentivo
       if (currentCoins < incentive.price) {
-        // No alcanza
-        Get.snackbar(
-          'Monedas Insuficientes',
-          'No tienes suficientes monedas para canjear este incentivo.',
-          snackPosition: SnackPosition.TOP,
-        );
+        Get.snackbar('Monedas Insuficientes',
+            'No tienes suficientes monedas para canjear este incentivo.',
+            snackPosition: SnackPosition.TOP);
         return;
       }
 
-      // 3) Hacemos el "registro" del canje en la subcolección
-      final userDocRef =
+      // Transacción: asegurar stock y registrar canje
+      final incentivesRef =
+          FirebaseFirestore.instance.collection('incentives').doc(incentive.id);
+      final userRef =
           FirebaseFirestore.instance.collection('users').doc(userId);
+      final redeemedRef =
+          userRef.collection('redeemedIncentives').doc(); // auto-id
 
-      await userDocRef.collection('redeemedIncentives').add({
-        'incentiveId': incentive.id, // si tu modelo de Incentive tiene un id
-        'name': incentive.name,
-        'description': incentive.description,
-        'price': incentive.price, // costo en monedas
-        'image': incentive.image,
-        'redeemedCoins': incentive.price, // cuántas monedas se gastaron
-        'status': 'pendiente',
-        'createdAt': FieldValue.serverTimestamp(),
+      await FirebaseFirestore.instance.runTransaction((t) async {
+        // Lee incentivo
+        final incSnap = await t.get(incentivesRef);
+        if (!incSnap.exists) {
+          throw FirebaseException(
+              plugin: 'IncentivesController', code: 'incentive-not-found');
+        }
+
+        final data = incSnap.data() as Map<String, dynamic>? ?? {};
+        final int currentStock = ((data['stock'] ?? 0) as num).toInt();
+
+        if (currentStock <= 0) {
+          // Stock insuficiente: abortar transacción
+          throw FirebaseException(
+              plugin: 'IncentivesController', code: 'out-of-stock');
+        }
+
+        // Decrementa stock
+        t.update(incentivesRef, {
+          'stock': FieldValue.increment(-1),
+        });
+
+        // Registra el canje (esto "descuenta" monedas en tu modelo por sumatoria)
+        t.set(redeemedRef, {
+          'incentiveId': incentive.id,
+          'name': incentive.name,
+          'description': incentive.description,
+          'price': incentive.price, // costo en monedas
+          'image': incentive.image,
+          'redeemedCoins': incentive.price,
+          'status': 'pendiente',
+          'createdAt': FieldValue.serverTimestamp(),
+          // extras útiles para auditoría
+          'incentiveRef': incentivesRef,
+          'userRef': userRef,
+        });
       });
 
-      // 4) Si quieres, puedes mostrar un snackbar de éxito aquí (o en la UI)
-      Get.snackbar(
-        '¡Felicidades!',
-        'Has canjeado el incentivo correctamente.',
-        snackPosition: SnackPosition.TOP,
-      );
+      // Éxito
+      Get.snackbar('¡Felicidades!',
+          'Has canjeado el incentivo correctamente. Se ha reservado tu unidad.',
+          snackPosition: SnackPosition.TOP);
+
+      // La UI se actualiza sola via stream; si quieres, puedes forzar un refresh:
+      // await _provider.forceRefresh(); // opcional si tienes tal método
+    } on FirebaseException catch (e) {
+      if (e.code == 'out-of-stock') {
+        Get.snackbar('Sin stock', 'Este incentivo ya no está disponible.',
+            snackPosition: SnackPosition.BOTTOM);
+      } else if (e.code == 'incentive-not-found') {
+        Get.snackbar('Error', 'El incentivo no existe o fue eliminado.',
+            snackPosition: SnackPosition.BOTTOM);
+      } else {
+        Get.snackbar('Error', 'No se pudo completar el canje (${e.code}).',
+            snackPosition: SnackPosition.BOTTOM);
+      }
     } catch (e) {
-      print('Error al canjear incentivo: $e');
-      Get.snackbar(
-        'Error',
-        'Ocurrió un error al canjear el incentivo.',
-        snackPosition: SnackPosition.TOP,
-      );
+      // Fallback de errores inesperados
+      Get.snackbar('Error', 'Ocurrió un error al canjear el incentivo.',
+          snackPosition: SnackPosition.TOP);
+    } finally {
+      _isRedeeming.value = false;
     }
   }
 
-  /// Método privado para obtener las monedas totales del usuario,
-  /// basadas en la suma de wasteCollections.totalCoins - suma de redeemedIncentives.redeemedCoins
+  /// Suma de coins (ingresos - canjes)
   Future<double> _getCurrentUserCoins(String userId) async {
     double sumWasteCollections = 0.0;
     double sumRedeemedIncentives = 0.0;
 
-    // Referencia al doc del usuario
     final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
 
-    // 1) Sumar totalCoins de wasteCollections donde userReference == userRef y isRecycled == true
+    // 1) totalCoins de wasteCollections (recolectas efectivas)
     final wasteCollectionsSnap = await FirebaseFirestore.instance
         .collection('wasteCollections')
         .where('userReference', isEqualTo: userRef)
@@ -125,7 +165,7 @@ class IncentivesController extends GetxController {
       }
     }
 
-    // 2) Sumar redeemedCoins de la subcolección redeemedIncentives
+    // 2) redeemedCoins de redeemedIncentives
     final redeemedSnap = await userRef.collection('redeemedIncentives').get();
     for (var doc in redeemedSnap.docs) {
       final data = doc.data();
@@ -135,9 +175,7 @@ class IncentivesController extends GetxController {
       }
     }
 
-    // 3) Calculamos las monedas disponibles
-    final currentCoins = sumWasteCollections - sumRedeemedIncentives;
-    return currentCoins;
+    return sumWasteCollections - sumRedeemedIncentives;
   }
 
   // Métodos extra de tu Provider:
